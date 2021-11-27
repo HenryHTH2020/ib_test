@@ -1,0 +1,1490 @@
+rm udtest V1_client_MP sync_res_destroy sync_res_init
+gcc V1_client_MP.c QP_imple_MP.c config_client.c -MMD -o V1_client_MP -g -libverbs -lpthread
+gcc sync_res_init.c QP_imple_MP.c config_client.c -MMD -o sync_res_init -g -libverbs -lpthread
+gcc sync_res_destroy.c QP_imple_MP.c config_client.c -MMD -o sync_res_destroy -g -libverbs -lpthread
+gcc pingpong.c ud_test_demo.c -MMD -o udtest -g -libverbs -lpthread
+pid
+9670
+pidover
+*********************************
+proc_qtt is 1
+[1;35mpid: 9729	p_ind-111	sem init begins
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_test_ready cleared
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_test_ready opened
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_test_start cleared
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_test_start opened
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_ready_2 cleared
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_ready_2 opened
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_start_2 cleared
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_start_2 opened
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_shmem_access cleared
+[0m[1;35mpid: 9729	p_ind-111	sem sem_name_shmem_access opened
+[0m[1;35mpid: 9729	p_ind-111	sem init ends
+[0m**********
+2021-11-25 19:26:01
+proc_num 0 of 1
+[1;35mpid: 9731	p_ind0	argv[0]:./V1_client_MP
+[0m[1;35mpid: 9731	p_ind0	argv[1]:0
+[0m[1;35mpid: 9731	p_ind0	argv[2]:1
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:01
+thrd_bnd:	0
+qp_qtt:	16
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:06
+thrd_bnd:	0
+qp_qtt:	16
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:10
+thrd_bnd:	0
+qp_qtt:	16
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:15
+thrd_bnd:	0
+qp_qtt:	16
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:19
+thrd_bnd:	0
+qp_qtt:	32
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:23
+thrd_bnd:	0
+qp_qtt:	32
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:28
+thrd_bnd:	0
+qp_qtt:	32
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:32
+thrd_bnd:	0
+qp_qtt:	32
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:36
+thrd_bnd:	0
+qp_qtt:	64
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:41
+thrd_bnd:	0
+qp_qtt:	64
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:45
+thrd_bnd:	0
+qp_qtt:	64
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:50
+thrd_bnd:	0
+qp_qtt:	64
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:54
+thrd_bnd:	0
+qp_qtt:	128
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:26:59
+thrd_bnd:	0
+qp_qtt:	128
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:03
+thrd_bnd:	0
+qp_qtt:	128
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:08
+thrd_bnd:	0
+qp_qtt:	128
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:13
+thrd_bnd:	0
+qp_qtt:	256
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:17
+thrd_bnd:	0
+qp_qtt:	256
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:22
+thrd_bnd:	0
+qp_qtt:	256
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:27
+thrd_bnd:	0
+qp_qtt:	256
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:32
+thrd_bnd:	0
+qp_qtt:	384
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:37
+thrd_bnd:	0
+qp_qtt:	384
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:42
+thrd_bnd:	0
+qp_qtt:	384
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:46
+thrd_bnd:	0
+qp_qtt:	384
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:51
+thrd_bnd:	0
+qp_qtt:	512
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:27:57
+thrd_bnd:	0
+qp_qtt:	512
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:02
+thrd_bnd:	0
+qp_qtt:	512
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:07
+thrd_bnd:	0
+qp_qtt:	512
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:12
+thrd_bnd:	0
+qp_qtt:	640
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:18
+thrd_bnd:	0
+qp_qtt:	640
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:23
+thrd_bnd:	0
+qp_qtt:	640
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:29
+thrd_bnd:	0
+qp_qtt:	640
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:34
+thrd_bnd:	0
+qp_qtt:	768
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:40
+thrd_bnd:	0
+qp_qtt:	768
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:45
+thrd_bnd:	0
+qp_qtt:	768
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:51
+thrd_bnd:	0
+qp_qtt:	768
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:28:57
+thrd_bnd:	0
+qp_qtt:	896
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:03
+thrd_bnd:	0
+qp_qtt:	896
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:08
+thrd_bnd:	0
+qp_qtt:	896
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:14
+thrd_bnd:	0
+qp_qtt:	896
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:20
+thrd_bnd:	0
+qp_qtt:	1024
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:26
+thrd_bnd:	0
+qp_qtt:	1024
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:33
+thrd_bnd:	0
+qp_qtt:	1024
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:39
+thrd_bnd:	0
+qp_qtt:	1024
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:45
+thrd_bnd:	0
+qp_qtt:	2048
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:29:54
+thrd_bnd:	0
+qp_qtt:	2048
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:02
+thrd_bnd:	0
+qp_qtt:	2048
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:10
+thrd_bnd:	0
+qp_qtt:	2048
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:19
+thrd_bnd:	0
+qp_qtt:	3072
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:29
+thrd_bnd:	0
+qp_qtt:	3072
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:40
+thrd_bnd:	0
+qp_qtt:	3072
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:30:51
+thrd_bnd:	0
+qp_qtt:	3072
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:31:02
+thrd_bnd:	0
+qp_qtt:	4096
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:31:14
+thrd_bnd:	0
+qp_qtt:	4096
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:31:27
+thrd_bnd:	0
+qp_qtt:	4096
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:31:40
+thrd_bnd:	0
+qp_qtt:	4096
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:31:53
+thrd_bnd:	0
+qp_qtt:	5120
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:32:08
+thrd_bnd:	0
+qp_qtt:	5120
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:32:24
+thrd_bnd:	0
+qp_qtt:	5120
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:32:40
+thrd_bnd:	0
+qp_qtt:	5120
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:32:55
+thrd_bnd:	0
+qp_qtt:	6144
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:33:13
+thrd_bnd:	0
+qp_qtt:	6144
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:33:31
+thrd_bnd:	0
+qp_qtt:	6144
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:33:49
+thrd_bnd:	0
+qp_qtt:	6144
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:34:07
+thrd_bnd:	0
+qp_qtt:	7168
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	0
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:34:27
+thrd_bnd:	0
+qp_qtt:	7168
+mr_per_qp	16
+mr_qtt:	16
+shared_mr
+pingpong_off
+mr_sz:	104
+msg_sz:	64
+thrd_qtt:	1
+proc_index:	0
+proc_qtt:	1
+time_len:	4000000
+rpt:	0
+pmtu:	5
+inline:	1
+**************
+[1;31mpid: 9731	p_ind0	found special prefix kangning_1
+[0m[1;31mpid: 9731	p_ind0	same
+[0mpid:	 9731	p_ind0	**************
+
+kangning_1_ud_one_sided_maxQP_8192_1
+11/25_19:34:46
+thrd_bnd:	0
+qp_qtt:	7168
+mr_per_qp	32
+mr_qtt:	32
+shared_mr
+pi

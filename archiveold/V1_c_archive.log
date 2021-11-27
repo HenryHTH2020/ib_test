@@ -1,0 +1,252 @@
+
+***************************
+09/04_17:53:29 from V1_client.c
+MR_NUM = 100	MR_SIZE = 4096	FORK_NUM = 0	LOOP = 100
+xfer_size:1.953125MB in 4.540000 ms
+3.360967Gb/s
+430.203744MB/s
+
+***************************
+09/04_17:54:31 from V1_client.c
+MR_NUM = 10	MR_SIZE = 4096	FORK_NUM = 0	LOOP = 10
+xfer_size:0.195312MB in 0.442000 ms
+3.452215Gb/s
+441.883484MB/s
+
+***************************
+09/04_17:55:03 from V1_client.c
+MR_NUM = 1	MR_SIZE = 4096	FORK_NUM = 0	LOOP = 1
+xfer_size:0.019531MB in 0.046000 ms
+3.317128Gb/s
+424.592391MB/s
+
+***************************
+09/04_17:55:23 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.049000 ms
+0.006082Gb/s
+0.778510MB/s
+
+***************************
+09/04_17:55:52 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.068000 ms
+0.004383Gb/s
+0.560985MB/s
+
+***************************
+09/04_17:55:58 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.036000 ms
+0.008278Gb/s
+1.059638MB/s
+
+***************************
+09/04_17:56:01 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.045000 ms
+0.006623Gb/s
+0.847711MB/s
+
+***************************
+09/04_17:56:03 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.039000 ms
+0.007642Gb/s
+0.978128MB/s
+
+***************************
+09/04_17:56:04 from V1_client.c
+MR_NUM = 1	MR_SIZE = 8	FORK_NUM = 0	LOOP = 1
+xfer_size:0.000038MB in 0.054000 ms
+0.005519Gb/s
+0.706425MB/s
+
+***************************
+09/04_17:56:33 from V1_client.c
+MR_NUM = 10	MR_SIZE = 8	FORK_NUM = 0	LOOP = 10
+xfer_size:0.000381MB in 0.462000 ms
+0.006451Gb/s
+0.825692MB/s
+
+***************************
+09/04_17:56:38 from V1_client.c
+MR_NUM = 10	MR_SIZE = 8	FORK_NUM = 0	LOOP = 10
+xfer_size:0.000381MB in 0.468000 ms
+0.006368Gb/s
+0.815106MB/s
+
+***************************
+09/04_17:56:39 from V1_client.c
+MR_NUM = 10	MR_SIZE = 8	FORK_NUM = 0	LOOP = 10
+xfer_size:0.000381MB in 0.466000 ms
+0.006395Gb/s
+0.818605MB/s
+
+***************************
+09/04_17:56:52 from V1_client.c
+MR_NUM = 100	MR_SIZE = 8	FORK_NUM = 0	LOOP = 100
+xfer_size:0.003815MB in 5.424000 ms
+0.005495Gb/s
+0.703300MB/s
+
+***************************
+09/04_17:56:55 from V1_client.c
+MR_NUM = 100	MR_SIZE = 8	FORK_NUM = 0	LOOP = 100
+xfer_size:0.003815MB in 4.597000 ms
+0.006483Gb/s
+0.829823MB/s
+
+***************************
+09/04_17:56:56 from V1_client.c
+MR_NUM = 100	MR_SIZE = 8	FORK_NUM = 0	LOOP = 100
+xfer_size:0.003815MB in 4.807000 ms
+0.006200Gb/s
+0.793571MB/s
+
+***************************
+09/04_17:57:29 from V1_client.c
+MR_NUM = 100	MR_SIZE = 4096	FORK_NUM = 0	LOOP = 100
+xfer_size:1.953125MB in 4.798000 ms
+3.180239Gb/s
+407.070654MB/s
+
+***************************
+09/04_17:57:32 from V1_client.c
+MR_NUM = 100	MR_SIZE = 4096	FORK_NUM = 0	LOOP = 100
+xfer_size:1.953125MB in 4.801000 ms
+3.178252Gb/s
+406.816288MB/s
+
+***************************
+09/04_17:57:54 from V1_client.c
+MR_NUM = 100	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 100
+xfer_size:500.000000MB in 68.887000 ms
+56.705184Gb/s
+7258.263533MB/s
+
+***************************
+09/04_17:57:56 from V1_client.c
+MR_NUM = 100	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 100
+xfer_size:500.000000MB in 68.864000 ms
+56.724123Gb/s
+7260.687732MB/s
+
+***************************
+09/04_17:58:07 from V1_client.c
+MR_NUM = 10	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 10
+xfer_size:50.000000MB in 6.936000 ms
+56.318483Gb/s
+7208.765859MB/s
+
+***************************
+09/04_17:58:08 from V1_client.c
+MR_NUM = 10	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 10
+xfer_size:50.000000MB in 6.903000 ms
+56.587715Gb/s
+7243.227582MB/s
+
+***************************
+09/04_17:58:18 from V1_client.c
+MR_NUM = 1	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 1
+xfer_size:5.000000MB in 0.739000 ms
+52.858593Gb/s
+6765.899865MB/s
+
+***************************
+09/04_17:58:20 from V1_client.c
+MR_NUM = 1	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 1
+xfer_size:5.000000MB in 0.743000 ms
+52.574024Gb/s
+6729.475101MB/s
+
+***************************
+09/04_17:58:21 from V1_client.c
+MR_NUM = 1	MR_SIZE = 1048576	FORK_NUM = 0	LOOP = 1
+xfer_size:5.000000MB in 0.731000 ms
+53.437073Gb/s
+6839.945280MB/s
+
+***************************
+09/04_17:58:43 from V1_client.c
+MR_NUM = 1	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 1
+xfer_size:500.000000MB in 68.831000 ms
+56.751318Gb/s
+7264.168761MB/s
+
+***************************
+09/04_17:58:44 from V1_client.c
+MR_NUM = 1	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 1
+xfer_size:500.000000MB in 68.840000 ms
+56.743899Gb/s
+7263.219059MB/s
+
+***************************
+09/04_17:58:55 from V1_client.c
+MR_NUM = 10	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 10
+xfer_size:5000.000000MB in 690.267000 ms
+56.590421Gb/s
+7243.573863MB/s
+
+***************************
+09/04_17:58:58 from V1_client.c
+MR_NUM = 10	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 10
+xfer_size:5000.000000MB in 691.360000 ms
+56.500955Gb/s
+7232.122194MB/s
+
+***************************
+09/04_17:59:16 from V1_client.c
+MR_NUM = 100	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 100
+xfer_size:50000.000000MB in 6919.912000 ms
+56.449417Gb/s
+7225.525411MB/s
+
+***************************
+09/04_17:59:35 from V1_client.c
+MR_NUM = 100	MR_SIZE = 104857600	FORK_NUM = 0	LOOP = 100
+xfer_size:50000.000000MB in 6910.209000 ms
+56.528681Gb/s
+7235.671164MB/s
+
+***************************
+09/04_18:00:23 from V1_client.c
+MR_NUM = 1	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 1
+xfer_size:5120.000000MB in 705.953000 ms
+56.660996Gb/s
+7252.607468MB/s
+
+***************************
+09/04_18:00:27 from V1_client.c
+MR_NUM = 1	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 1
+xfer_size:5120.000000MB in 706.048000 ms
+56.653372Gb/s
+7251.631617MB/s
+
+***************************
+09/04_18:00:39 from V1_client.c
+MR_NUM = 10	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 10
+xfer_size:51200.000000MB in 7059.610000 ms
+56.660354Gb/s
+7252.525281MB/s
+
+***************************
+09/04_18:00:54 from V1_client.c
+MR_NUM = 10	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 10
+xfer_size:51200.000000MB in 7058.652000 ms
+56.668044Gb/s
+7253.509594MB/s
+
+***************************
+09/04_18:02:17 from V1_client.c
+MR_NUM = 15	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 15
+xfer_size:76800.000000MB in 10587.096000 ms
+56.672765Gb/s
+7254.113876MB/s
+
+***************************
+09/04_18:03:10 from V1_client.c
+MR_NUM = 20	MR_SIZE = 1073741824	FORK_NUM = 0	LOOP = 20
+xfer_size:61440.000000MB in 8477.056000 ms
+56.623432Gb/s
+7247.799236MB/s
