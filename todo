@@ -1,0 +1,23 @@
+pingpong
+    TBC
+
+
+for inline data configuration
+    timing begin before or after the post
+
+
+multi thread
+    TBC
+
+
+message_rate 
+    no pingpong
+
+
+RDMAV_HUGEPAGES_SAFE
+
+
+FORK safe
+
+
+zero size
