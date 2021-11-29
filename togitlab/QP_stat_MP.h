@@ -258,7 +258,6 @@ extern unsigned int qp_quantity;
 extern unsigned int mr_per_qp;
 extern unsigned int mr_quantity;
 extern unsigned int wr_per_qp;
-extern int single_mr;
 extern int share_mr_between_qp;
 
 extern size_t mr_size;
@@ -306,7 +305,7 @@ char sync_confirm_index;
 //polling
 
 extern int global_max_poll_quantity;
-
+extern int unsignaled;
 
 int sock_connect(const char *servername, int port);
 

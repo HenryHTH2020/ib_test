@@ -54,7 +54,6 @@ size_t thread_quantity = 1;
 unsigned int qp_quantity = 1;
 unsigned int mr_per_qp = 1;
 unsigned int wr_per_qp = 1;
-int single_mr = 0;
 
 unsigned int mr_quantity = 1;
 int share_mr_between_qp = 0;
@@ -78,20 +77,16 @@ char *sem_name_shmem_access = "sem_name_shmem_access";
 char *sem_name_ready_2 = "sem_name_ready_2";
 char *sem_name_start_2 = "sem_name_start_2";
 
-
-
-struct config_t config = {NULL,		 /* dev_name */
-						  NULL, /* server_name */
-						  19800,		 /* tcp_data_port */
-						  20000,		 /* tcp_ctrl_port */
-						  1,			 /* ib_port */
+struct config_t config = {NULL,	 /* dev_name */
+						  NULL,	 /* server_name */
+						  19800, /* tcp_data_port */
+						  20000, /* tcp_ctrl_port */
+						  1,	 /* ib_port */
 						  0 /* gid_idx */};
-
-
 
 //polling
 int global_max_poll_quantity;
-
+int unsignaled = 0;
 static size_t recv_qtt_tmp;
 static int barrier_tag = 0;
 static size_t old_fashioned_lat = 0;
@@ -292,7 +287,7 @@ int alloc_pd(struct resources *res)
 int create_cq(struct resources *res)
 {
 
-	int cq_size = qp_quantity * mr_per_qp + 1;
+	int cq_size = qp_quantity * (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp) + 1;
 	if (pingpong_mode)
 	{
 		cq_size *= 2;
@@ -415,11 +410,14 @@ int create_qp(struct resources *res)
 	qp_init_attr.qp_type = qp_type;
 	if (qp_type == IBV_QPT_UD)
 	{
+
 		qp_init_attr.sq_sig_all = 1;
+
 		qp_init_attr.send_cq = res->cq;
 		qp_init_attr.recv_cq = res->cq;
-		qp_init_attr.cap.max_send_wr = mr_per_qp + 1;
-		qp_init_attr.cap.max_recv_wr = mr_per_qp + 1;
+		qp_init_attr.cap.max_send_wr = (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp) + 1;
+		qp_init_attr.cap.max_recv_wr = (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp) + 1;
+
 		qp_init_attr.cap.max_send_sge = 1;
 		qp_init_attr.cap.max_recv_sge = 1;
 		qp_init_attr.cap.max_inline_data = max_inline_length;
@@ -999,7 +997,7 @@ int resources_destroy(struct resources *res)
 {
 	int rc = 0;
 
-	//log_verbose_level +=4;
+	//log_verbose_level += 4;
 	if (res->qp)
 	{
 		PRINT_IN_YELLOW("destroy QP\n");
@@ -1019,7 +1017,7 @@ int resources_destroy(struct resources *res)
 		free(res->qp);
 		res->qp = NULL;
 	}
-	//log_verbose_level -=4;
+	//log_verbose_level -= 4;
 	PRINT_IN_YELLOW("destroy mr array\n");
 	if (res->mr_array)
 	{
@@ -1443,7 +1441,7 @@ int prepare_wrs(struct resources *res)
 			}
 			else if (qp_type == IBV_QPT_UD && opcode == IBV_WR_SEND_WITH_IMM)
 			{
-				if (mr_per_qp == 1 && wr_per_qp >= 1)
+				if (mr_per_qp == 1 && wr_per_qp >= 1 && share_mr_between_qp)
 				{
 					int wr_index = 0;
 					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);
@@ -1453,9 +1451,10 @@ int prepare_wrs(struct resources *res)
 					send_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr + 40);
 					send_sge_list[0].length = msg_size;
 					send_sge_list[0].lkey = res->mr_array[0]->lkey;
-					for(int i = 0;i<wr_per_qp;i++){
+					for (wr_index = 0; wr_index < wr_per_qp * qp_quantity; wr_index++)
+					{
 						/* prepare the send work request */
-						if ((wr_index + 1) % mr_per_qp)
+						if ((wr_index + 1) % wr_per_qp)
 						{
 							sr_list[wr_index].next = &sr_list[wr_index + 1];
 						}
@@ -1469,6 +1468,7 @@ int prepare_wrs(struct resources *res)
 
 						sr_list[wr_index].opcode = opcode;
 						sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
+
 						sr_list[wr_index].imm_data = wr_index;
 						sr_list[wr_index].wr.ud.ah = res->ah;
 						sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / wr_per_qp];
@@ -1481,113 +1481,111 @@ int prepare_wrs(struct resources *res)
 						}
 					}
 				}
-
-				PRINT_IN_PINK("preparing WRS FOR UD SEND WITH IMM\n");
-				int wr_index = 0;
-				sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * mr_per_qp);
-				send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
-				memset(sr_list, 0, sizeof(struct ibv_send_wr) * qp_quantity * mr_per_qp);
-				memset(send_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
-				if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+				else
 				{
-
-					if (!proc_index)
+					PRINT_IN_PINK("preparing WRS FOR UD SEND WITH IMM\n");
+					int wr_index = 0;
+					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * mr_per_qp);
+					send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
+					memset(sr_list, 0, sizeof(struct ibv_send_wr) * qp_quantity * mr_per_qp);
+					memset(send_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
+					//if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+					if (share_mr_between_qp)
 					{
-						PRINT_IN_RED("found special prefix %s\n", special_prefix);
+
+						for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
+						{
+							if (wr_index < mr_per_qp)
+							{
+								send_sge_list[wr_index].addr = (uintptr_t)(res->mr_array[wr_index]->addr + 40);
+								send_sge_list[wr_index].length = msg_size;
+								send_sge_list[wr_index].lkey = res->mr_array[wr_index]->lkey;
+							}
+							/* prepare the send work request */
+							if ((wr_index + 1) % mr_per_qp)
+							{
+								sr_list[wr_index].next = &sr_list[wr_index + 1];
+							}
+							else
+							{
+								sr_list[wr_index].next = NULL;
+							}
+							sr_list[wr_index].wr_id = wr_index;
+							sr_list[wr_index].sg_list = &send_sge_list[wr_index % mr_per_qp];
+							sr_list[wr_index].num_sge = 1;
+
+							sr_list[wr_index].opcode = opcode;
+							sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
+							sr_list[wr_index].imm_data = wr_index;
+							sr_list[wr_index].wr.ud.ah = res->ah;
+							sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / mr_per_qp];
+							sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
+							if (!msg_size)
+							{
+								sr_list[wr_index].sg_list = NULL;
+								sr_list[wr_index].num_sge = 0;
+								sr_list[wr_index].send_flags &= ~inline_flag;
+							}
+							//sr_list[wr_index].send_flags =0;
+							//PRINT_IN_YELLOW("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
+						}
+
+						PRINT_IN_RED("same\n");
 					}
-
-					for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
+					else
 					{
-						if (wr_index < mr_per_qp)
+						for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
 						{
 							send_sge_list[wr_index].addr = (uintptr_t)(res->mr_array[wr_index]->addr + 40);
 							send_sge_list[wr_index].length = msg_size;
 							send_sge_list[wr_index].lkey = res->mr_array[wr_index]->lkey;
-						}
-						/* prepare the send work request */
-						if ((wr_index + 1) % mr_per_qp)
-						{
-							sr_list[wr_index].next = &sr_list[wr_index + 1];
-						}
-						else
-						{
-							sr_list[wr_index].next = NULL;
-						}
-						sr_list[wr_index].wr_id = wr_index;
-						sr_list[wr_index].sg_list = &send_sge_list[wr_index % mr_per_qp];
-						sr_list[wr_index].num_sge = 1;
+							/* prepare the send work request */
+							if ((wr_index + 1) % mr_per_qp)
+							{
+								sr_list[wr_index].next = &sr_list[wr_index + 1];
+							}
+							else
+							{
+								sr_list[wr_index].next = NULL;
+							}
+							sr_list[wr_index].wr_id = wr_index;
+							sr_list[wr_index].sg_list = &send_sge_list[wr_index];
+							sr_list[wr_index].num_sge = 1;
 
-						sr_list[wr_index].opcode = opcode;
-						sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
-						sr_list[wr_index].imm_data = wr_index;
-						sr_list[wr_index].wr.ud.ah = res->ah;
-						sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / mr_per_qp];
-						sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
-						if (!msg_size)
-						{
-							sr_list[wr_index].sg_list = NULL;
-							sr_list[wr_index].num_sge = 0;
-							sr_list[wr_index].send_flags &= ~inline_flag;
+							sr_list[wr_index].opcode = opcode;
+							sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
+							sr_list[wr_index].imm_data = wr_index;
+							sr_list[wr_index].wr.ud.ah = res->ah;
+							sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / mr_per_qp];
+							sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
+							if (!msg_size)
+							{
+								sr_list[wr_index].sg_list = NULL;
+								sr_list[wr_index].num_sge = 0;
+								sr_list[wr_index].send_flags &= ~inline_flag;
+							}
+							//sr_list[wr_index].send_flags =0;
+							PRINT_IN_PINK("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
+							sr_list[wr_index];
 						}
-						//sr_list[wr_index].send_flags =0;
-						//PRINT_IN_YELLOW("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
 					}
 
-					PRINT_IN_RED("same\n");
-				}
-				else
-				{
-					for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
 					{
-						send_sge_list[wr_index].addr = (uintptr_t)(res->mr_array[wr_index]->addr + 40);
-						send_sge_list[wr_index].length = msg_size;
-						send_sge_list[wr_index].lkey = res->mr_array[wr_index]->lkey;
-						/* prepare the send work request */
-						if ((wr_index + 1) % mr_per_qp)
+						struct ibv_port_attr port_info = {};
+						int mtu;
+						if (ibv_query_port(res->ib_ctx, config.ib_port, &port_info))
 						{
-							sr_list[wr_index].next = &sr_list[wr_index + 1];
+							PRINT_IN_RED("Unable to query port info for port %d\n", config.ib_port);
+							exit(1);
 						}
-						else
+						mtu = 1 << (port_info.active_mtu + 7);
+						if (msg_size > mtu)
 						{
-							sr_list[wr_index].next = NULL;
+							PRINT_IN_RED("Requested size larger than port MTU (%d)\n", mtu);
+							exit(1);
 						}
-						sr_list[wr_index].wr_id = wr_index;
-						sr_list[wr_index].sg_list = &send_sge_list[wr_index];
-						sr_list[wr_index].num_sge = 1;
-
-						sr_list[wr_index].opcode = opcode;
-						sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
-						sr_list[wr_index].imm_data = wr_index;
-						sr_list[wr_index].wr.ud.ah = res->ah;
-						sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / mr_per_qp];
-						sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
-						if (!msg_size)
-						{
-							sr_list[wr_index].sg_list = NULL;
-							sr_list[wr_index].num_sge = 0;
-							sr_list[wr_index].send_flags &= ~inline_flag;
-						}
-						//sr_list[wr_index].send_flags =0;
-						PRINT_IN_PINK("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
-						sr_list[wr_index];
+						PRINT_IN_YELLOW("Requested size %lu is compatible with port MTU (%d)\n", msg_size, mtu);
 					}
-				}
-
-				{
-					struct ibv_port_attr port_info = {};
-					int mtu;
-					if (ibv_query_port(res->ib_ctx, config.ib_port, &port_info))
-					{
-						PRINT_IN_RED("Unable to query port info for port %d\n", config.ib_port);
-						exit(1);
-					}
-					mtu = 1 << (port_info.active_mtu + 7);
-					if (msg_size > mtu)
-					{
-						PRINT_IN_RED("Requested size larger than port MTU (%d)\n", mtu);
-						exit(1);
-					}
-					PRINT_IN_YELLOW("Requested size %lu is compatible with port MTU (%d)\n", msg_size, mtu);
 				}
 			}
 		}
@@ -1611,18 +1609,45 @@ int prepare_wrs(struct resources *res)
 			else if (qp_type == IBV_QPT_UD && opcode == IBV_WR_SEND_WITH_IMM)
 			{
 				PRINT_IN_PINK("preparing WRS FOR UD SEND WITH IMM\n");
-
 				int wr_index = 0;
-				rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
-				recv_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
-				memset(rr_list, 0, sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
-				memset(recv_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
-				if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+				//if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+				if (share_mr_between_qp && mr_per_qp == 1 && wr_per_qp >= 1)
 				{
-					if (!proc_index)
+					rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity * wr_per_qp);
+					recv_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge));
+					memset(rr_list, 0, sizeof(struct ibv_recv_wr) * qp_quantity * wr_per_qp);
+					memset(recv_sge_list, 0, sizeof(struct ibv_sge));
+					recv_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr);
+					recv_sge_list[0].length = mr_size;
+					recv_sge_list[0].lkey = res->mr_array[0]->lkey;
+					for (wr_index = 0; wr_index < qp_quantity * wr_per_qp; wr_index++)
 					{
-						PRINT_IN_RED("found special prefix %s\n", special_prefix);
+						if ((wr_index + 1) % wr_per_qp)
+						{
+							rr_list[wr_index].next = &rr_list[wr_index + 1];
+						}
+						else
+						{
+							rr_list[wr_index].next = NULL;
+						}
+						rr_list[wr_index].wr_id = wr_index + qp_quantity * wr_per_qp;
+						rr_list[wr_index].sg_list = &recv_sge_list[0];
+						rr_list[wr_index].num_sge = 1;
+						if (msg_size == 0)
+						{
+							rr_list[wr_index].num_sge = 0;
+							rr_list[wr_index].sg_list = NULL;
+						}
+						//PRINT_IN_PINK("lkey: %8x\n", rr_list[wr_index].sg_list->lkey);
 					}
+				}
+				else if (share_mr_between_qp)
+				{
+					rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
+					recv_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
+					memset(rr_list, 0, sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
+					memset(recv_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
+
 					for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
 					{
 						if (wr_index < mr_per_qp)
@@ -1652,7 +1677,10 @@ int prepare_wrs(struct resources *res)
 				}
 				else
 				{
-
+					rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
+					recv_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
+					memset(rr_list, 0, sizeof(struct ibv_recv_wr) * qp_quantity * mr_per_qp);
+					memset(recv_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
 					for (wr_index = 0; wr_index < qp_quantity * mr_per_qp; wr_index++)
 					{
 
@@ -1768,7 +1796,9 @@ int try_multi_post_send(struct resources *res, int qp_index, struct ibv_send_wr 
 	for (temp = sl; temp; temp = temp->next)
 	{
 		count++;
+		//printf("%lu\t", temp->wr_id);
 	}
+	//printf("\n");
 	PRINT_IN_YELLOW("this time multi post send size is %d\n", count);
 	while (rc = ibv_post_send(res->qp[qp_index], sl, &bad_wr))
 	{
@@ -1826,6 +1856,7 @@ int multi_post_recv(struct resources *res, int qpindex, struct ibv_recv_wr *wr_l
 	PRINT_IN_YELLOW("this time multi post recv size is %d\n", count);
 	if (rc = ibv_post_recv(res->qp[qpindex], wr_l, &bad_wr))
 	{
+		PRINT_IN_RED("rc = %d %s\n", rc, strerror(rc));
 		PRINT_IN_RED("wrid: %lu \t \n", bad_wr->wr_id);
 		PRINT_IN_RED("Error in post recv\n");
 		check_QP_state(res, "post recv");
@@ -1914,6 +1945,7 @@ struct ibv_wc *multi_poll_completion_with_imm(struct resources *res, unsigned lo
 	}
 	else if (poll_result == 0)
 	{ /* the CQ is empty */
+
 		perror("poll");
 		PRINT_IN_RED("completion wasn't found in the CQ after timeout\n");
 		exit(1);
@@ -2109,6 +2141,10 @@ int try_multi_poll_completion(struct resources *res, unsigned long timeout, int 
 	int poll_result;
 	int rc = 0;
 	size_t ts, te;
+	if (unsignaled)
+	{
+		timeout = 0;
+	}
 	//PRINT_IN_PINK("max poll qtt is %d\n", max_poll_qtt);
 	/* poll the completion for a while before giving up of doing it .. */
 	ts = get_timestamp();
@@ -2121,12 +2157,20 @@ int try_multi_poll_completion(struct resources *res, unsigned long timeout, int 
 	if (poll_result < 0)
 	{
 		/* poll CQ failed */
+
 		PRINT_IN_RED("poll CQ failed\n");
 		exit(1);
 	}
 	else if (poll_result == 0)
 	{ /* the CQ is empty */
-		PRINT_IN_YELLOW("completion wasn't found in the CQ after timeout\n");
+		if (unsignaled)
+		{
+			PRINT_IN_PINK("unsignaled no bad cqe is polled\n");
+		}
+		else
+		{
+			PRINT_IN_YELLOW("completion wasn't found in the CQ after timeout\n");
+		}
 	}
 	else
 	{
@@ -2186,6 +2230,9 @@ void print_info()
 	sprintf(print_string + strlen(print_string), "mr_per_qp\t%u\n", mr_per_qp);
 	// mr qtt
 	sprintf(print_string + strlen(print_string), "mr_qtt:\t%d\n", mr_quantity);
+	// wr per qp
+	sprintf(print_string + strlen(print_string), "wr_per_qp:\t%d\n", wr_per_qp);
+
 	//share mr
 	if (share_mr_between_qp)
 	{
@@ -2454,7 +2501,6 @@ void prt_rst_to_file_fixed_time(size_t total_xfer_quantity, int summary)
 	// mr size
 	sprintf(file_string + strlen(file_string), "mr_msg_size\t");
 	sprintf(file_string + strlen(file_string), "%12lu\t", mr_size);
-
 
 	// msg size
 	sprintf(file_string + strlen(file_string), "%12lu\t", msg_size);
@@ -3159,9 +3205,10 @@ size_t test_msg_rate_ud(struct resources *res)
 	PRINT_IN_PINK("this is the start of test_msg_rate_ud\n");
 	if (!mr_pingpong_count)
 	{
-		mr_pingpong_count = malloc(sizeof(size_t) * qp_quantity * mr_per_qp);
+		mr_pingpong_count = malloc(sizeof(size_t) * qp_quantity * (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp));
 	}
-	memset(mr_pingpong_count, 0, sizeof(size_t) * qp_quantity * mr_per_qp);
+	memset(mr_pingpong_count, 0, sizeof(size_t) * qp_quantity * (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp));
+	int unit = (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp);
 
 	if (config.server_name)
 	{
@@ -3172,13 +3219,13 @@ size_t test_msg_rate_ud(struct resources *res)
 		barrier_sem_inter_intra_nodes();
 		size_t ts, te;
 		ts = get_timestamp();
-
 		for (int i = 0; i < qp_quantity; i++)
 		{
 			//post_send(res, i);
 			PRINT_IN_PINK("before send qp[%d]\n", i);
-			try_multi_post_send(res, i, &sr_list[i * mr_per_qp]);
+			try_multi_post_send(res, i, &sr_list[i * unit]);
 		}
+
 		for (te = get_timestamp(); !config.server_name && te - ts < (size_t)(test_time_length * 1.05) || te - ts < test_time_length; te = get_timestamp())
 		{
 			//PRINT_IN_PINK("counter %d\n",counter++);
@@ -3190,7 +3237,7 @@ size_t test_msg_rate_ud(struct resources *res)
 			if (!(polled_qtt = try_multi_poll_completion(res, TRY_TIMEOUT, global_max_poll_quantity, wc_list)))
 			{
 				PRINT_IN_PINK("te - ts: %lu\t set_length: %lu \t diff_ratio: %.6lf\n", te - ts, test_time_length, 1.0 * (te - ts) / test_time_length - 1);
-				if (!config.server_name && te - ts > (size_t)(test_time_length * 1.1))
+				if (!config.server_name && get_timestamp() - ts > (size_t)(test_time_length * 1.1))
 				{
 					break;
 				}
@@ -3211,9 +3258,15 @@ size_t test_msg_rate_ud(struct resources *res)
 			total_polled_qtt += polled_qtt;
 			for (int wc_index = 0; wc_index < polled_qtt; wc_index++)
 			{
-				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * mr_per_qp);
-				int qp_id = mr_id / mr_per_qp;
-				PRINT_IN_YELLOW("polled cqe of send %d, qp id %d\n", mr_id, qp_id);
+				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * unit);
+				int qp_id = mr_id / unit;
+
+				//PRINT_IN_YELLOW("polled cqe of send %d, qp id %d\n", mr_id, qp_id);
+				if (wc_list[wc_index].status != IBV_WC_SUCCESS)
+				{
+					PRINT_IN_RED("poll bad status %s\t\n", ibv_wc_status_str(wc_list[wc_index].status));
+					exit(1);
+				}
 				mr_pingpong_count[mr_id]++;
 				if (send_wr_ptr_list[qp_id] == NULL)
 				{
@@ -3243,8 +3296,10 @@ size_t test_msg_rate_ud(struct resources *res)
 					temp_send->next = NULL;
 
 					//multipost
-					//PRINT_IN_YELLOW("before multipost send qp[%d]\n", i);
+					PRINT_IN_PINK("before multipost send qp[%d]\n", i);
+					PRINT_IN_PINK("QPN[%d] is %u\n", i, res->qp[i]->qp_num);
 					try_multi_post_send(res, i, send_wr_ptr_list[i]);
+					PRINT_IN_PINK("after multipost send qp[%d]\n", i);
 				}
 			}
 			if (send_wr_ptr_list)
@@ -3287,7 +3342,7 @@ size_t test_msg_rate_ud(struct resources *res)
 		for (int i = 0; i < qp_quantity; i++)
 		{
 			//post_recv(res, i);
-			multi_post_recv(res, i, &rr_list[i * mr_per_qp]);
+			multi_post_recv(res, i, &rr_list[i * unit]);
 		}
 		barrier_sem_inter_intra_nodes();
 		size_t ts, te;
@@ -3326,11 +3381,14 @@ size_t test_msg_rate_ud(struct resources *res)
 
 			for (int wc_index = 0; wc_index < polled_qtt; wc_index++)
 			{
-
-				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * mr_per_qp);
-				int qp_id = mr_id / mr_per_qp;
-				PRINT_IN_YELLOW("polled cqe of recv %d, qp id %d\n", mr_id, qp_id);
-
+				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * unit);
+				int qp_id = mr_id / unit;
+				//PRINT_IN_YELLOW("polled cqe of recv %d, qp id %d, wrid %lu\n", mr_id, qp_id, wc_list[wc_index].wr_id);
+				if (wc_list[wc_index].status != IBV_WC_SUCCESS)
+				{
+					PRINT_IN_RED("poll bad status %s\t\n", ibv_wc_status_str(wc_list[wc_index].status));
+					exit(1);
+				}
 				mr_pingpong_count[mr_id]++;
 				if (recv_wr_ptr_list[qp_id] == NULL)
 				{
@@ -3359,8 +3417,9 @@ size_t test_msg_rate_ud(struct resources *res)
 					temp_recv->next = NULL;
 
 					//multipost
-					PRINT_IN_GREEN("before multipost recv qp[%d]\n", i);
+					PRINT_IN_PINK("before multipost recv qp[%d]\n", i);
 					multi_post_recv(res, i, recv_wr_ptr_list[i]);
+					PRINT_IN_PINK("after multipost recv qp[%d]\n", i);
 				}
 			}
 			if (recv_wr_ptr_list)
@@ -3509,7 +3568,7 @@ int confirm_mem_req()
 {
 	barrier_tag = 0;
 	int coefficient = 1;
-	global_max_poll_quantity = qp_quantity * mr_per_qp;
+	global_max_poll_quantity = qp_quantity * (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp);
 
 	// multiply by two for send and receive
 	if (pingpong_mode)
@@ -3961,12 +4020,12 @@ void barrier_sem_inter_intra_nodes()
 		sock_sync(res.ctrl_sock, 1, &sync_confirm_index, &tempc);
 		if (sync_confirm_index != tempc)
 		{
-			PRINT_IN_RED("sync indices are different\n");
+			PRINT_IN_RED("sync indices are different %d %d\n", (int)tempc, (int)sync_confirm_index);
 			exit(1);
 		}
 		else
 		{
-			PRINT_IN_PINK("sync indexes are the same\n");
+			PRINT_IN_PINK("sync indexes are the same %d %d\n", (int)tempc, (int)sync_confirm_index);
 		}
 		sync_confirm_index++;
 		// process 0 ends sync between server and client

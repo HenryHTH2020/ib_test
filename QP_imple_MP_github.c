@@ -78,6 +78,8 @@ char *sem_name_shmem_access = "sem_name_shmem_access";
 char *sem_name_ready_2 = "sem_name_ready_2";
 char *sem_name_start_2 = "sem_name_start_2";
 
+
+
 struct config_t config = {NULL,		 /* dev_name */
 						  NULL, /* server_name */
 						  19800,		 /* tcp_data_port */
