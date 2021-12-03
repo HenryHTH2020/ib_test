@@ -4,14 +4,15 @@ static int bound_offset = 0;
 
 struct resources res;
 
+int end_this_loop = 0;
 uint32_t error_flag = 0;
 int ok = 0;
 int use_data_gram = 0;
 int test_mode = 0;
 size_t test_time_length = 10000000;
 char time_string[40] = "";
-const int DEVICE_INLINE_LENGTH_UD = 956; //956
-const int DEVICE_INLINE_LENGTH = 828;	 //828
+const int DEVICE_INLINE_LENGTH_UD = 956; // 956
+const int DEVICE_INLINE_LENGTH = 828;	 // 828
 static size_t *mr_pingpong_count = NULL;
 
 size_t page_size;
@@ -39,6 +40,7 @@ int inline_mode = 1;
 int pingpong_mode = 1;
 int max_inline_length = 0;
 int log_verbose_level = 3;
+char *special_prefix_QPC = "QPC_TEST";
 
 char VersionID[50] = "QP_MR_V1_test_1";
 char test_subject[20] = "msg_rate";
@@ -48,6 +50,8 @@ size_t REPEAT = 10000;
 size_t TIMEOUT = 10000;
 size_t TRY_TIMEOUT = 5000;
 size_t MAX_THREAD_QUANTITY = 1;
+size_t dev_ctx_qtt = 1;
+
 size_t LIMIT = 22;
 
 size_t thread_quantity = 1;
@@ -57,6 +61,8 @@ unsigned int wr_per_qp = 1;
 
 unsigned int mr_quantity = 1;
 int share_mr_between_qp = 0;
+int share_buf_between_mr = 0;
+size_t buf_qtt = 1;
 
 size_t mr_size = 1024 * 1024;
 size_t msg_size = 1024 * 1024;
@@ -64,8 +70,9 @@ int path_mtu = 5;
 int thread_bound = 1;
 
 size_t received_quantity = 0;
+double avrg_post_clk = 0, avrg_post_to_poll_clk = 0;
 
-//shared memory
+// shared memory
 int param_shmem_fd;
 struct shmem_struct *pshemem_struct;
 
@@ -84,7 +91,7 @@ struct config_t config = {NULL,	 /* dev_name */
 						  1,	 /* ib_port */
 						  0 /* gid_idx */};
 
-//polling
+// polling
 int global_max_poll_quantity;
 int unsignaled = 0;
 static size_t recv_qtt_tmp;
@@ -295,8 +302,9 @@ int create_cq(struct resources *res)
 	res->cq = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
 	if (!res->cq)
 	{
-		PRINT_IN_RED("create cq error");
-		exit(1);
+		PRINT_IN_RED("create cq error\n");
+		end_this_loop = 1;
+		return 0;
 	}
 	return 0;
 }
@@ -317,7 +325,7 @@ int alloc_buf_old(struct resources *res)
 		if (!res->buf)
 		{
 			perror("buffer alloc");
-			PRINT_IN_RED("alloc buf error");
+			PRINT_IN_RED("alloc buf error\n");
 			exit(1);
 		}
 		memset(res->buf, 0, buf_size);
@@ -337,7 +345,11 @@ int alloc_buf(struct resources *res)
 	if (!strcmp(page_size_str, "4KB"))
 	{
 
-		size_t buf_qtt = mr_quantity;
+		buf_qtt = mr_quantity;
+		if (share_buf_between_mr)
+		{
+			buf_qtt = 1;
+		}
 		if (pingpong_mode)
 		{
 			buf_qtt *= 2;
@@ -383,7 +395,18 @@ int alloc_mr(struct resources *res)
 	for (int i = 0; i < total_mr_quantity; i++)
 	{
 		PRINT_IN_BLUE("allocating mr [%d]\n", i);
-		if (res->buf)
+		if (share_buf_between_mr)
+		{
+			if (!pingpong_mode || i < total_mr_quantity / 2)
+			{
+				res->mr_array[i] = ibv_reg_mr(res->pd, res->buf_arr[0], mr_size, mr_flags);
+			}
+			else
+			{
+				res->mr_array[i] = ibv_reg_mr(res->pd, res->buf_arr[1], mr_size, mr_flags);
+			}
+		}
+		else if (res->buf)
 		{
 			res->mr_array[i] = ibv_reg_mr(res->pd, res->buf + mr_size * i, mr_size, mr_flags);
 		}
@@ -410,9 +433,7 @@ int create_qp(struct resources *res)
 	qp_init_attr.qp_type = qp_type;
 	if (qp_type == IBV_QPT_UD)
 	{
-
 		qp_init_attr.sq_sig_all = 1;
-
 		qp_init_attr.send_cq = res->cq;
 		qp_init_attr.recv_cq = res->cq;
 		qp_init_attr.cap.max_send_wr = (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp) + 1;
@@ -424,19 +445,43 @@ int create_qp(struct resources *res)
 
 		res->qp = (struct ibv_qp **)malloc(sizeof(struct ibv_qp *) * qp_quantity);
 
+	start_create_QP:
 		for (int i = 0; i < qp_quantity; i++)
 		{
+			// PRINT_IN_PINK("before create\n");
 			res->qp[i] = ibv_create_qp(res->pd, &qp_init_attr);
-			if (!res->qp)
+			// PRINT_IN_PINK("after create\n");
+			if (!res->qp[i])
 			{
 				PRINT_IN_RED("create qp error\n");
+				PRINT_IN_RED("max send wr %u\t max recv wr %u\n", qp_init_attr.cap.max_send_wr, qp_init_attr.cap.max_recv_wr);
+				PRINT_IN_RED("max inline %u\n", qp_init_attr.cap.max_inline_data);
 				exit(1);
+			}
+			if (i > 0)
+			{
+				int diff = res->qp[i]->qp_num - res->qp[i - 1]->qp_num;
+				if (diff != 1)
+				{
+					PRINT_IN_RED("qpn[%d] - qpn[%d] = %u\n", i, i - 1, diff);
+					for (int j = 0; j <= i; j++)
+					{
+						ibv_destroy_qp(res->qp[j]);
+						res->qp[j] = NULL;
+					}
+					PRINT_IN_RED("QP destroyed, alloc again\n");
+					goto start_create_QP;
+				}
 			}
 			struct ibv_qp_attr attr;
 			struct ibv_qp_init_attr init_attr;
+			// PRINT_IN_PINK("before query\n");
 			ibv_query_qp(res->qp[i], &attr, IBV_QP_CAP, &init_attr);
-			//PRINT_IN_RED("my max_inline_length %d; max inline data %u\n", max_inline_length, init_attr.cap.max_inline_data);
+			// PRINT_IN_PINK("after query\n");
+
+			// PRINT_IN_RED("my max_inline_length %d; max inline data %u\n", max_inline_length, init_attr.cap.max_inline_data);
 		}
+		PRINT_IN_RED("QP OK\n");
 	}
 	else if (qp_type == IBV_QPT_RC || qp_type == IBV_QPT_UC)
 	{
@@ -764,7 +809,7 @@ void create_ah_attr_for_UD()
 		PRINT_IN_PINK("In ah attr for ud is global set to 1\n");
 		ah_attr.is_global = 1;
 		ah_attr.grh.hop_limit = 1;
-		//ah_attr.grh.dgid = res.remote_props.gid;
+		// ah_attr.grh.dgid = res.remote_props.gid;
 		memcpy(&ah_attr.grh.dgid, res.remote_props.gid, 16);
 		ah_attr.grh.sgid_index = config.gid_idx;
 	}
@@ -875,7 +920,7 @@ int connect_qp(struct resources *res)
 	{
 
 		cd_qpn.qp_num[i] = htonl(res->qp[i]->qp_num);
-		//local_con_data.qp_num[i] = htonl(res->qp[i]->qp_num);
+		// local_con_data.qp_num[i] = htonl(res->qp[i]->qp_num);
 
 		PRINT_IN_BLUE("local QP number[%d] = 0x%x\n", i, res->qp[i]->qp_num);
 	}
@@ -997,7 +1042,7 @@ int resources_destroy(struct resources *res)
 {
 	int rc = 0;
 
-	//log_verbose_level += 4;
+	// log_verbose_level += 4;
 	if (res->qp)
 	{
 		PRINT_IN_YELLOW("destroy QP\n");
@@ -1017,7 +1062,7 @@ int resources_destroy(struct resources *res)
 		free(res->qp);
 		res->qp = NULL;
 	}
-	//log_verbose_level -= 4;
+	// log_verbose_level -= 4;
 	PRINT_IN_YELLOW("destroy mr array\n");
 	if (res->mr_array)
 	{
@@ -1048,16 +1093,11 @@ int resources_destroy(struct resources *res)
 		free(res->buf);
 		res->buf = NULL;
 	}
-	//free_buf(res);
+	// free_buf(res);
 
 	if (res->buf_arr)
 	{
-		int total_mr_qtt = mr_quantity;
-		if (pingpong_mode)
-		{
-			total_mr_qtt *= 2;
-		}
-		for (int i = 0; i < total_mr_qtt; i++)
+		for (int i = 0; i < buf_qtt; i++)
 		{
 			PRINT_IN_YELLOW("FREEING BUFF_ARR[%d]\n", i);
 			if (res->buf_arr[i])
@@ -1161,7 +1201,7 @@ int prepare_wrs(struct resources *res)
 					sr_list[wr_index].num_sge = 0;
 					sr_list[wr_index].send_flags &= ~inline_flag;
 				}
-				//sr_list[wr_index].send_flags &= ~IBV_SEND_SIGNALED;
+				// sr_list[wr_index].send_flags &= ~IBV_SEND_SIGNALED;
 				if (msg_size && opcode != IBV_WR_SEND && opcode != IBV_WR_SEND_WITH_IMM)
 				{
 					sr_list[wr_index].wr.rdma.remote_addr = res->remote_props.addr[(wr_index) % (qp_quantity * mr_per_qp)];
@@ -1205,7 +1245,7 @@ int prepare_wrs(struct resources *res)
 				sr_list[wr_index].opcode = opcode;
 				sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
 				sr_list[wr_index].imm_data = wr_index;
-				//PRINT_IN_PINK("srlist [%d], wrid %lu, imm %u\n", wr_index, sr_list[wr_index].wr_id, sr_list[wr_index].imm_data);
+				// PRINT_IN_PINK("srlist [%d], wrid %lu, imm %u\n", wr_index, sr_list[wr_index].wr_id, sr_list[wr_index].imm_data);
 				if (opcode != IBV_WR_SEND)
 				{
 					sr_list[wr_index].wr.rdma.remote_addr = res->remote_props.addr[(wr_index) % (qp_quantity * mr_per_qp)];
@@ -1337,9 +1377,9 @@ int prepare_wrs(struct resources *res)
 					sr_list[wr_index].num_sge = 0;
 					sr_list[wr_index].send_flags &= ~inline_flag;
 				}
-				//sr_list[wr_index].send_flags =0;
+				// sr_list[wr_index].send_flags =0;
 				PRINT_IN_YELLOW("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
-				//recv part
+				// recv part
 				recv_sge_list[wr_index].addr = (uintptr_t)(res->mr_array[wr_index + qp_quantity * mr_per_qp]->addr);
 				recv_sge_list[wr_index].length = mr_size;
 				recv_sge_list[wr_index].lkey = res->mr_array[wr_index + qp_quantity * mr_per_qp]->lkey;
@@ -1371,7 +1411,6 @@ int prepare_wrs(struct resources *res)
 	}
 	else // not pingpong
 	{
-		char *special_prefix = "kangning_1";
 		if (config.server_name) // client side
 		{
 			if (qp_type == IBV_QPT_RC)
@@ -1428,9 +1467,9 @@ int prepare_wrs(struct resources *res)
 					{
 						sr_list[wr_index].sg_list = NULL;
 						sr_list[wr_index].num_sge = 0;
-						//sr_list[wr_index].send_flags &= ~inline_flag;
+						// sr_list[wr_index].send_flags &= ~inline_flag;
 					}
-					//sr_list[wr_index].send_flags =0;
+					// sr_list[wr_index].send_flags =0;
 
 					if (msg_size && opcode != IBV_WR_SEND && opcode != IBV_WR_SEND_WITH_IMM)
 					{
@@ -1441,14 +1480,53 @@ int prepare_wrs(struct resources *res)
 			}
 			else if (qp_type == IBV_QPT_UD && opcode == IBV_WR_SEND_WITH_IMM)
 			{
-				if (mr_per_qp == 1 && wr_per_qp >= 1 && share_mr_between_qp)
+				if (strlen(VersionID) >= strlen(special_prefix_QPC) && !memcmp(VersionID, special_prefix_QPC, strlen(special_prefix_QPC)) && share_mr_between_qp)
+				{
+					PRINT_IN_RED("found special prefix %s\n", special_prefix_QPC);
+					if (mr_quantity > 1 || wr_per_qp > 0 || inline_mode == 0 || !share_mr_between_qp)
+					{
+						PRINT_IN_RED("config error\n");
+						exit(1);
+					}
+					int wr_index = 0;
+					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr));
+					send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge));
+					memset(sr_list, 0, sizeof(struct ibv_send_wr));
+					memset(send_sge_list, 0, sizeof(struct ibv_sge));
+					send_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr);
+					send_sge_list[0].length = msg_size;
+					send_sge_list[0].lkey = res->mr_array[0]->lkey;
+					/* prepare the send work request */
+
+					sr_list[wr_index].next = NULL;
+					// wrindex need to be changed
+					sr_list[wr_index].wr_id = 0;
+					sr_list[wr_index].sg_list = &send_sge_list[0];
+					sr_list[wr_index].num_sge = 1;
+
+					sr_list[wr_index].opcode = opcode;
+					sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
+
+					sr_list[wr_index].imm_data = wr_index;
+					sr_list[wr_index].wr.ud.ah = res->ah;
+					// qpnum need to be changed
+					sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[0];
+					sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
+					if (!msg_size)
+					{
+						sr_list[wr_index].sg_list = NULL;
+						sr_list[wr_index].num_sge = 0;
+						sr_list[wr_index].send_flags &= ~inline_flag;
+					}
+				}
+				else if (mr_per_qp == 1 && wr_per_qp >= 1 && share_mr_between_qp)
 				{
 					int wr_index = 0;
 					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);
 					send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge));
 					memset(sr_list, 0, sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);
 					memset(send_sge_list, 0, sizeof(struct ibv_sge));
-					send_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr + 40);
+					send_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr);
 					send_sge_list[0].length = msg_size;
 					send_sge_list[0].lkey = res->mr_array[0]->lkey;
 					for (wr_index = 0; wr_index < wr_per_qp * qp_quantity; wr_index++)
@@ -1489,7 +1567,7 @@ int prepare_wrs(struct resources *res)
 					send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
 					memset(sr_list, 0, sizeof(struct ibv_send_wr) * qp_quantity * mr_per_qp);
 					memset(send_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity * mr_per_qp);
-					//if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+					// if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
 					if (share_mr_between_qp)
 					{
 
@@ -1526,11 +1604,9 @@ int prepare_wrs(struct resources *res)
 								sr_list[wr_index].num_sge = 0;
 								sr_list[wr_index].send_flags &= ~inline_flag;
 							}
-							//sr_list[wr_index].send_flags =0;
-							//PRINT_IN_YELLOW("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
+							// sr_list[wr_index].send_flags =0;
+							// PRINT_IN_YELLOW("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
 						}
-
-						PRINT_IN_RED("same\n");
 					}
 					else
 					{
@@ -1564,7 +1640,7 @@ int prepare_wrs(struct resources *res)
 								sr_list[wr_index].num_sge = 0;
 								sr_list[wr_index].send_flags &= ~inline_flag;
 							}
-							//sr_list[wr_index].send_flags =0;
+							// sr_list[wr_index].send_flags =0;
 							PRINT_IN_PINK("wr[%d] remote QPN %u, remoteQPK %u\n", wr_index, sr_list[wr_index].wr.ud.remote_qpn, sr_list[wr_index].wr.ud.remote_qkey);
 							sr_list[wr_index];
 						}
@@ -1610,7 +1686,30 @@ int prepare_wrs(struct resources *res)
 			{
 				PRINT_IN_PINK("preparing WRS FOR UD SEND WITH IMM\n");
 				int wr_index = 0;
-				//if (strlen(VersionID) >= strlen(special_prefix) && !memcmp(VersionID, special_prefix, strlen(special_prefix)) && share_mr_between_qp)
+				if (strlen(VersionID) >= strlen(special_prefix_QPC) && !memcmp(VersionID, special_prefix_QPC, strlen(special_prefix_QPC)) && share_mr_between_qp)
+				{
+					PRINT_IN_RED("found special prefix QPC_TEST\n");
+					rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity);
+					recv_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge) * qp_quantity);
+					memset(rr_list, 0, sizeof(struct ibv_recv_wr));
+					memset(recv_sge_list, 0, sizeof(struct ibv_sge) * qp_quantity);
+					for (wr_index = 0; wr_index < qp_quantity; wr_index++)
+					{
+						recv_sge_list[wr_index].addr = (uintptr_t)(res->mr_array[0]->addr);
+						recv_sge_list[wr_index].length = mr_size;
+						recv_sge_list[wr_index].lkey = res->mr_array[0]->lkey;
+						rr_list[wr_index].next = NULL;
+						// id to be changed
+						rr_list[wr_index].wr_id = wr_index + qp_quantity;
+						rr_list[wr_index].sg_list = &recv_sge_list[wr_index];
+						rr_list[wr_index].num_sge = 1;
+						if (msg_size == 0)
+						{
+							rr_list[wr_index].num_sge = 0;
+							rr_list[wr_index].sg_list = NULL;
+						}
+					}
+				}
 				if (share_mr_between_qp && mr_per_qp == 1 && wr_per_qp >= 1)
 				{
 					rr_list = (struct ibv_recv_wr *)malloc(sizeof(struct ibv_recv_wr) * qp_quantity * wr_per_qp);
@@ -1638,7 +1737,7 @@ int prepare_wrs(struct resources *res)
 							rr_list[wr_index].num_sge = 0;
 							rr_list[wr_index].sg_list = NULL;
 						}
-						//PRINT_IN_PINK("lkey: %8x\n", rr_list[wr_index].sg_list->lkey);
+						// PRINT_IN_PINK("lkey: %8x\n", rr_list[wr_index].sg_list->lkey);
 					}
 				}
 				else if (share_mr_between_qp)
@@ -1672,7 +1771,7 @@ int prepare_wrs(struct resources *res)
 							rr_list[wr_index].num_sge = 0;
 							rr_list[wr_index].sg_list = NULL;
 						}
-						//PRINT_IN_PINK("lkey: %8x\n", rr_list[wr_index].sg_list->lkey);
+						// PRINT_IN_PINK("lkey: %8x\n", rr_list[wr_index].sg_list->lkey);
 					}
 				}
 				else
@@ -1736,7 +1835,7 @@ int post_send(struct resources *res, int i)
 	PRINT_IN_YELLOW("srlist[%d] wrid: %lu \t imm%u\n", i, sr_list[i].wr_id, sr_list[i].imm_data);
 	if (sr_list[i].imm_data - sr_list[i].wr_id || i - sr_list[i].imm_data)
 	{
-		//PRINT_IN_RED("sr_list[i].imm_data - sr_list[i].wr_id %lu\ti - sr_list[i].imm_data %u\n",sr_list[i].imm_data - sr_list[i].wr_id,i - sr_list[i].imm_data);
+		// PRINT_IN_RED("sr_list[i].imm_data - sr_list[i].wr_id %lu\ti - sr_list[i].imm_data %u\n",sr_list[i].imm_data - sr_list[i].wr_id,i - sr_list[i].imm_data);
 		PRINT_IN_RED("srlist[%d] wrid: %lu \t imm%u\n", i, sr_list[i].wr_id, sr_list[i].imm_data);
 	}
 	PRINT_IN_PINK("qp[%d]:qpn=%u remote qpn = %u remote qpkey = %u\n", i / mr_per_qp, res->qp[i / mr_per_qp]->qp_num, sr_list[i].wr.ud.remote_qpn, sr_list[i].wr.ud.remote_qkey);
@@ -1765,7 +1864,7 @@ int try_post_send(struct resources *res, int i)
 	PRINT_IN_YELLOW("srlist[%d] wrid: %lu \t imm%u\n", i, sr_list[i].wr_id, sr_list[i].imm_data);
 	if (sr_list[i].imm_data - sr_list[i].wr_id || i - sr_list[i].imm_data)
 	{
-		//PRINT_IN_RED("sr_list[i].imm_data - sr_list[i].wr_id %lu\ti - sr_list[i].imm_data %u\n",sr_list[i].imm_data - sr_list[i].wr_id,i - sr_list[i].imm_data);
+		// PRINT_IN_RED("sr_list[i].imm_data - sr_list[i].wr_id %lu\ti - sr_list[i].imm_data %u\n",sr_list[i].imm_data - sr_list[i].wr_id,i - sr_list[i].imm_data);
 		PRINT_IN_RED("srlist[%d] wrid: %lu \t imm%u\n", i, sr_list[i].wr_id, sr_list[i].imm_data);
 	}
 	sr_list[i].next = NULL;
@@ -1796,9 +1895,9 @@ int try_multi_post_send(struct resources *res, int qp_index, struct ibv_send_wr 
 	for (temp = sl; temp; temp = temp->next)
 	{
 		count++;
-		//printf("%lu\t", temp->wr_id);
+		// printf("%lu\t", temp->wr_id);
 	}
-	//printf("\n");
+	// printf("\n");
 	PRINT_IN_YELLOW("this time multi post send size is %d\n", count);
 	while (rc = ibv_post_send(res->qp[qp_index], sl, &bad_wr))
 	{
@@ -1846,7 +1945,7 @@ int multi_post_recv(struct resources *res, int qpindex, struct ibv_recv_wr *wr_l
 	int rc = 0;
 	struct ibv_recv_wr *bad_wr = NULL;
 	// PRINT_IN_GREEN("posting wrid %d\n", i);
-	//PRINT_IN_PINK("qp[%d]:qpn=%u remote qpn = %u\n", qpindex, res->qp[qpindex]->qp_num, res->remote_props.qp_num[qpindex]);
+	// PRINT_IN_PINK("qp[%d]:qpn=%u remote qpn = %u\n", qpindex, res->qp[qpindex]->qp_num, res->remote_props.qp_num[qpindex]);
 	struct ibv_recv_wr *temp = wr_l;
 	int count = 0;
 	for (temp = wr_l; temp; temp = temp->next)
@@ -2013,7 +2112,7 @@ int poll_completion(struct resources *res, unsigned long timeout, int *i)
 	return rc;
 }
 
-int try_poll_completion(struct resources *res, unsigned long timeout, int *i)
+inline int try_poll_completion(struct resources *res, unsigned long timeout, int *i)
 {
 	struct ibv_wc wc;
 	struct timeval cur_time;
@@ -2127,13 +2226,13 @@ int try_poll_completion_with_imm(struct resources *res, unsigned long timeout, i
 			PRINT_IN_RED("poll bad status %s\timm: %d \n", ibv_wc_status_str(wc.status), *imm);
 			rc = 1;
 			check_QP_state(res, "after poll");
-			//exit(1);
+			// exit(1);
 		}
 	}
 	return rc;
 }
 
-int try_multi_poll_completion(struct resources *res, unsigned long timeout, int max_poll_qtt, struct ibv_wc *wc_list)
+inline int try_multi_poll_completion(struct resources *res, unsigned long timeout, int max_poll_qtt, struct ibv_wc *wc_list)
 {
 	struct ibv_wc wc;
 	struct timeval cur_time;
@@ -2145,7 +2244,7 @@ int try_multi_poll_completion(struct resources *res, unsigned long timeout, int 
 	{
 		timeout = 0;
 	}
-	//PRINT_IN_PINK("max poll qtt is %d\n", max_poll_qtt);
+	// PRINT_IN_PINK("max poll qtt is %d\n", max_poll_qtt);
 	/* poll the completion for a while before giving up of doing it .. */
 	ts = get_timestamp();
 	do
@@ -2233,7 +2332,7 @@ void print_info()
 	// wr per qp
 	sprintf(print_string + strlen(print_string), "wr_per_qp:\t%d\n", wr_per_qp);
 
-	//share mr
+	// share mr
 	if (share_mr_between_qp)
 	{
 		sprintf(print_string + strlen(print_string), "shared_mr\n");
@@ -2404,7 +2503,7 @@ void prt_rst_to_file_fixed_time(size_t total_xfer_quantity, int summary)
 	sprintf(file_string + strlen(file_string), "%s\t", time_string);
 	// subject
 	sprintf(file_string + strlen(file_string), "%s\t", test_subject);
-	//transfer type
+	// transfer type
 	char *xfertype;
 	if (qp_type == IBV_QPT_RC)
 	{
@@ -2420,7 +2519,7 @@ void prt_rst_to_file_fixed_time(size_t total_xfer_quantity, int summary)
 	}
 	sprintf(file_string + strlen(file_string), "%4s\t", xfertype);
 
-	//opcode
+	// opcode
 	char *opcode_str;
 	if (opcode == IBV_WR_RDMA_WRITE)
 	{
@@ -2554,14 +2653,37 @@ void prt_rst_to_file_fixed_time(size_t total_xfer_quantity, int summary)
 	sprintf(file_string + strlen(file_string), "%20lu\t", total_xfer_msg_quantity);
 	// average lat in us
 	sprintf(file_string + strlen(file_string), "lat\t");
+	size_t para = qp_quantity * (mr_per_qp > wr_per_qp ? mr_per_qp : wr_per_qp);
+
+	if (strlen(VersionID) >= strlen(special_prefix_QPC) && !memcmp(VersionID, special_prefix_QPC, strlen(special_prefix_QPC)) && share_mr_between_qp)
+	{
+		para = 1;
+	}
 	if (summary)
 	{
-		sprintf(file_string + strlen(file_string), "%3.4lf\t", 1.0 * tv * proc_quantity * qp_quantity * mr_per_qp / total_xfer_msg_quantity);
+		sprintf(file_string + strlen(file_string), "%3.4lf\t", 1.0 * tv * proc_quantity * para / total_xfer_msg_quantity);
 	}
 	else
 	{
-		sprintf(file_string + strlen(file_string), "%3.4lf\t", 1.0 * tv * qp_quantity * mr_per_qp / total_xfer_msg_quantity);
+		sprintf(file_string + strlen(file_string), "%3.4lf\t", 1.0 * tv * para / total_xfer_msg_quantity);
 	}
+	// for QPC test
+	sprintf(file_string + strlen(file_string), "QPC:\tpst_clks\t");
+	double avrg_post_clk = 0, avrg_post_to_poll_clk = 0;
+	for (int i = 0; i < proc_quantity; i++)
+	{
+		PRINT_IN_RED("avrg_post_clk[%d] = %lf\n", i, pshemem_struct->avrg_post_clk[i]);
+		avrg_post_clk += pshemem_struct->avrg_post_clk[i] * (1.0 * pshemem_struct->msg_post_quantity[i] / total_xfer_quantity);
+		avrg_post_to_poll_clk += pshemem_struct->avrg_post_to_poll_clk[i] * ((1.0 * pshemem_struct->msg_post_quantity[i] / total_xfer_quantity));
+	}
+
+	sprintf(file_string + strlen(file_string), "%5lf\t", avrg_post_clk);
+	sprintf(file_string + strlen(file_string), "rest_clks\t");
+	sprintf(file_string + strlen(file_string), "%5lf\t", avrg_post_to_poll_clk - avrg_post_clk);
+
+	sprintf(file_string + strlen(file_string), "pst_pll_clks\t");
+	sprintf(file_string + strlen(file_string), "%5lf\t", avrg_post_to_poll_clk);
+
 	// for msg_rate
 	double msg_rate = 1.0 * total_xfer_quantity / tv;
 	sprintf(file_string + strlen(file_string), "msg_rate\t");
@@ -2587,7 +2709,7 @@ void prt_rst_to_file_fixed_time(size_t total_xfer_quantity, int summary)
 
 	sprintf(file_string + strlen(file_string), "%3.4lf\t", ratio);
 
-	//error flag
+	// error flag
 	sprintf(file_string + strlen(file_string), "err_flag\t");
 	sprintf(file_string + strlen(file_string), "%08x\t", error_flag);
 
@@ -2729,7 +2851,7 @@ void print_final_result_fixed_time_length()
 				PRINT("%lfGb/s\n", Gb_per_s);
 				PRINT("%lfMB/s\n", Gb_per_s * 128);
 				PRINT("RESULT ends\n");
-				//prt_rst_to_file_fixed_time(pp_count[i], 0);
+				// prt_rst_to_file_fixed_time(pp_count[i], 0);
 			}
 			else if (!strcmp(test_subject, "lat"))
 			{
@@ -2743,7 +2865,7 @@ void print_final_result_fixed_time_length()
 				PRINT("total_xfer_msg_quantity:%lu\n", total_xfer_msg_quantity);
 				PRINT("average lat:\t%lfus\n", 1.0 * tv / total_xfer_msg_quantity);
 				PRINT("RESULT ends\n");
-				//prt_rst_to_file_fixed_time(pp_count[i], 0);
+				// prt_rst_to_file_fixed_time(pp_count[i], 0);
 			}
 			else if (!strcmp(test_subject, "msg_rate"))
 			{
@@ -2755,7 +2877,7 @@ void print_final_result_fixed_time_length()
 				PRINT("average msg_rate:\t%lf messages per us (million messages/s)\n", msg_rate);
 				PRINT("RESULT ends\n");
 				recv_qtt_tmp = recv_quantitiy[i];
-				//prt_rst_to_file_fixed_time(post_quantity[i], 0);
+				// prt_rst_to_file_fixed_time(post_quantity[i], 0);
 			}
 			else
 			{
@@ -2890,7 +3012,7 @@ size_t test_core_pingpong(struct resources *res)
 	}
 }
 
-//multi poll version
+// multi poll version
 size_t test_bw_pingpong_timelength(struct resources *res)
 {
 	if (!mr_pingpong_count)
@@ -2907,7 +3029,7 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 	int send_count = 0;
 	for (int i = 0; i < qp_quantity; i++)
 	{
-		//post_recv(res, i);
+		// post_recv(res, i);
 		multi_post_recv(res, i, &rr_list[i * mr_per_qp]);
 	}
 	barrier_sem_inter_intra_nodes();
@@ -2918,7 +3040,7 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 	PRINT_IN_PINK("warmup ends\n");
 
 	barrier_sem_inter_intra_nodes();
-	//memset(poll_counter, 0, sizeof(int) * qp_quantity * mr_per_qp);
+	// memset(poll_counter, 0, sizeof(int) * qp_quantity * mr_per_qp);
 	struct ibv_recv_wr **recv_wr_ptr_list = (struct ibv_recv_wr **)malloc(sizeof(struct ibv_recv_wr *) * qp_quantity);
 	struct ibv_send_wr **send_wr_ptr_list = (struct ibv_send_wr **)malloc(sizeof(struct ibv_send_wr *) * qp_quantity);
 	struct ibv_wc *wc_list = NULL;
@@ -2929,8 +3051,8 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 		ts = get_timestamp();
 		for (int i = 0; i < qp_quantity; i++)
 		{
-			//post_send(res, i);
-			//PRINT_IN_PINK("before send qp[%d]\n", i);
+			// post_send(res, i);
+			// PRINT_IN_PINK("before send qp[%d]\n", i);
 			try_multi_post_send(res, i, &sr_list[i * mr_per_qp]);
 		}
 		PRINT_IN_PINK("client first posting send over \n");
@@ -2943,13 +3065,13 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 
 	for (te = get_timestamp(); !config.server_name && te - ts < (size_t)(test_time_length * 1.05) || te - ts < test_time_length; te = get_timestamp())
 	{
-		//PRINT_IN_PINK("counter %d\n",counter++);
+		// PRINT_IN_PINK("counter %d\n",counter++);
 		int temp, imm;
 		int polled_qtt;
 		// check_QP_state(res, "before poll");
 		if (!(polled_qtt = try_multi_poll_completion(res, TRY_TIMEOUT, global_max_poll_quantity, wc_list)))
 		{
-			//PRINT_IN_PINK("te - ts: %lu\t set_length: %lu \t diff_ratio: %.6lf\n", te - ts, test_time_length, 1.0 * (te - ts) / test_time_length - 1);
+			// PRINT_IN_PINK("te - ts: %lu\t set_length: %lu \t diff_ratio: %.6lf\n", te - ts, test_time_length, 1.0 * (te - ts) / test_time_length - 1);
 			if (!config.server_name && te - ts > (size_t)(test_time_length * 1.1))
 			{
 				break;
@@ -2958,18 +3080,18 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 			check_QP_state(res, "after poll");
 			continue;
 		}
-		//head node list
+		// head node list
 
 		memset(send_wr_ptr_list, 0, sizeof(struct ibv_send_wr *) * qp_quantity);
 		memset(recv_wr_ptr_list, 0, sizeof(struct ibv_recv_wr *) * qp_quantity);
 
-		//one head node for a queue
+		// one head node for a queue
 
 		for (int wc_index = 0; wc_index < polled_qtt; wc_index++)
 		{
 			struct ibv_wc cur_wqe = wc_list[wc_index];
 
-			//PRINT_IN_PINK("in the loop\n");
+			// PRINT_IN_PINK("in the loop\n");
 			if (wc_list[wc_index].wr_id >= recv_id_offset)
 			{
 
@@ -3027,7 +3149,7 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 		{
 			if (recv_wr_ptr_list[i])
 			{
-				//adjust the head node
+				// adjust the head node
 				temp_recv = recv_wr_ptr_list[i];
 				recv_wr_ptr_list[i] = recv_wr_ptr_list[i]->next;
 				temp_recv->next = NULL;
@@ -3036,10 +3158,10 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 				send_wr_ptr_list[i] = send_wr_ptr_list[i]->next;
 				temp_send->next = NULL;
 
-				//multipost
-				//PRINT_IN_YELLOW("before multipost recv qp[%d]\n", i);
+				// multipost
+				// PRINT_IN_YELLOW("before multipost recv qp[%d]\n", i);
 				multi_post_recv(res, i, recv_wr_ptr_list[i]);
-				//PRINT_IN_YELLOW("before multipost send qp[%d]\n", i);
+				// PRINT_IN_YELLOW("before multipost send qp[%d]\n", i);
 				try_multi_post_send(res, i, send_wr_ptr_list[i]);
 			}
 		}
@@ -3099,6 +3221,11 @@ size_t test_bw_pingpong_timelength(struct resources *res)
 
 size_t test_msg_rate(struct resources *res)
 {
+	if (strlen(VersionID) >= strlen(special_prefix_QPC) && !memcmp(VersionID, special_prefix_QPC, strlen(special_prefix_QPC)) && share_mr_between_qp)
+	{
+		return test_msg_rate_QPC(res);
+	}
+
 	if (qp_type == IBV_QPT_UD)
 	{
 		PRINT_IN_PINK("SWITCHING TO test msg rate UD\n");
@@ -3125,12 +3252,12 @@ size_t test_msg_rate(struct resources *res)
 			try_poll_completion(res, TIMEOUT, &temp);
 			// PRINT_IN_BLUE("NUMBER %lu is polled\n",poll_seq++);
 			post_send(res, temp);
-			//poll_seq++;
+			// poll_seq++;
 			post_seq++;
 			PRINT_IN_GREEN("NUMBER %lu is posted wr_id %d\n", post_seq, temp);
 		}
 		PRINT_IN_YELLOW("post_seq:%lu\n", post_seq);
-		//PRINT_IN_YELLOW("poll_seq:%lu\n", poll_seq);
+		// PRINT_IN_YELLOW("poll_seq:%lu\n", poll_seq);
 		size_t sync_temp;
 
 		if (sock_sync(res->ctrl_sock, sizeof(size_t), (void *)&sync_temp, (void *)&received_quantity))
@@ -3221,14 +3348,14 @@ size_t test_msg_rate_ud(struct resources *res)
 		ts = get_timestamp();
 		for (int i = 0; i < qp_quantity; i++)
 		{
-			//post_send(res, i);
+			// post_send(res, i);
 			PRINT_IN_PINK("before send qp[%d]\n", i);
 			try_multi_post_send(res, i, &sr_list[i * unit]);
 		}
 
 		for (te = get_timestamp(); !config.server_name && te - ts < (size_t)(test_time_length * 1.05) || te - ts < test_time_length; te = get_timestamp())
 		{
-			//PRINT_IN_PINK("counter %d\n",counter++);
+			// PRINT_IN_PINK("counter %d\n",counter++);
 			int temp, imm;
 			int polled_qtt;
 			struct ibv_wc *wc_list = NULL;
@@ -3250,18 +3377,18 @@ size_t test_msg_rate_ud(struct resources *res)
 				}
 				continue;
 			}
-			//head node list
+			// head node list
 			struct ibv_send_wr **send_wr_ptr_list = (struct ibv_send_wr **)malloc(sizeof(struct ibv_send_wr *) * qp_quantity);
 			memset(send_wr_ptr_list, 0, sizeof(struct ibv_send_wr *) * qp_quantity);
 
-			//one head node for a queue
+			// one head node for a queue
 			total_polled_qtt += polled_qtt;
 			for (int wc_index = 0; wc_index < polled_qtt; wc_index++)
 			{
 				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * unit);
 				int qp_id = mr_id / unit;
 
-				//PRINT_IN_YELLOW("polled cqe of send %d, qp id %d\n", mr_id, qp_id);
+				// PRINT_IN_YELLOW("polled cqe of send %d, qp id %d\n", mr_id, qp_id);
 				if (wc_list[wc_index].status != IBV_WC_SUCCESS)
 				{
 					PRINT_IN_RED("poll bad status %s\t\n", ibv_wc_status_str(wc_list[wc_index].status));
@@ -3290,12 +3417,12 @@ size_t test_msg_rate_ud(struct resources *res)
 			{
 				if (send_wr_ptr_list[i])
 				{
-					//adjust the head node
+					// adjust the head node
 					temp_send = send_wr_ptr_list[i];
 					send_wr_ptr_list[i] = send_wr_ptr_list[i]->next;
 					temp_send->next = NULL;
 
-					//multipost
+					// multipost
 					PRINT_IN_PINK("before multipost send qp[%d]\n", i);
 					PRINT_IN_PINK("QPN[%d] is %u\n", i, res->qp[i]->qp_num);
 					try_multi_post_send(res, i, send_wr_ptr_list[i]);
@@ -3309,7 +3436,7 @@ size_t test_msg_rate_ud(struct resources *res)
 			}
 		}
 
-		//PRINT_IN_YELLOW("poll_seq:%lu\n", poll_seq);
+		// PRINT_IN_YELLOW("poll_seq:%lu\n", poll_seq);
 		size_t sync_temp;
 
 		if (sock_sync(res->ctrl_sock, sizeof(size_t), (void *)&sync_temp, (void *)&received_quantity))
@@ -3341,7 +3468,7 @@ size_t test_msg_rate_ud(struct resources *res)
 		char temp_char;
 		for (int i = 0; i < qp_quantity; i++)
 		{
-			//post_recv(res, i);
+			// post_recv(res, i);
 			multi_post_recv(res, i, &rr_list[i * unit]);
 		}
 		barrier_sem_inter_intra_nodes();
@@ -3350,7 +3477,7 @@ size_t test_msg_rate_ud(struct resources *res)
 		size_t total_polled_qtt = 0;
 		for (te = get_timestamp(); !config.server_name && te - ts < (size_t)(test_time_length * 1.05) || te - ts < test_time_length; te = get_timestamp())
 		{
-			//PRINT_IN_PINK("counter %d\n",counter++);
+			// PRINT_IN_PINK("counter %d\n",counter++);
 			int temp, imm;
 			int polled_qtt;
 			struct ibv_wc *wc_list = NULL;
@@ -3373,17 +3500,17 @@ size_t test_msg_rate_ud(struct resources *res)
 				continue;
 			}
 			total_polled_qtt += polled_qtt;
-			//head node list
+			// head node list
 			struct ibv_recv_wr **recv_wr_ptr_list = (struct ibv_recv_wr **)malloc(sizeof(struct ibv_recv_wr *) * qp_quantity);
 			memset(recv_wr_ptr_list, 0, sizeof(struct ibv_recv_wr *) * qp_quantity);
 
-			//one head node for a queue
+			// one head node for a queue
 
 			for (int wc_index = 0; wc_index < polled_qtt; wc_index++)
 			{
 				int mr_id = wc_list[wc_index].wr_id % (qp_quantity * unit);
 				int qp_id = mr_id / unit;
-				//PRINT_IN_YELLOW("polled cqe of recv %d, qp id %d, wrid %lu\n", mr_id, qp_id, wc_list[wc_index].wr_id);
+				// PRINT_IN_YELLOW("polled cqe of recv %d, qp id %d, wrid %lu\n", mr_id, qp_id, wc_list[wc_index].wr_id);
 				if (wc_list[wc_index].status != IBV_WC_SUCCESS)
 				{
 					PRINT_IN_RED("poll bad status %s\t\n", ibv_wc_status_str(wc_list[wc_index].status));
@@ -3411,12 +3538,12 @@ size_t test_msg_rate_ud(struct resources *res)
 			{
 				if (recv_wr_ptr_list[i])
 				{
-					//adjust the head node
+					// adjust the head node
 					temp_recv = recv_wr_ptr_list[i];
 					recv_wr_ptr_list[i] = recv_wr_ptr_list[i]->next;
 					temp_recv->next = NULL;
 
-					//multipost
+					// multipost
 					PRINT_IN_PINK("before multipost recv qp[%d]\n", i);
 					multi_post_recv(res, i, recv_wr_ptr_list[i]);
 					PRINT_IN_PINK("after multipost recv qp[%d]\n", i);
@@ -3426,6 +3553,230 @@ size_t test_msg_rate_ud(struct resources *res)
 			{
 				free(recv_wr_ptr_list);
 				recv_wr_ptr_list = NULL;
+			}
+		}
+
+		size_t sync_temp;
+		if (sock_sync(res->ctrl_sock, sizeof(size_t), (void *)&total_polled_qtt, (void *)&sync_temp))
+		{
+			PRINT_IN_RED("failed to send the recv_quantity from opposite side\n");
+			exit(1);
+		}
+		else
+		{
+			PRINT_IN_PINK("Successfully send received quantity: %lu\n", total_polled_qtt);
+		}
+
+		barrier_sem_inter_intra_nodes();
+		return 0;
+	}
+}
+
+size_t test_msg_rate_QPC(struct resources *res)
+{
+	PRINT_IN_RED("this is the start of test_msg_rate_QPC\n");
+	size_t post_tcs, post_tce, poll_tcs, poll_tce, whole_tcs, whole_tce;
+
+	if (!mr_pingpong_count)
+	{
+		mr_pingpong_count = malloc(sizeof(size_t) * qp_quantity);
+	}
+	memset(mr_pingpong_count, 0, sizeof(size_t) * qp_quantity);
+
+	if (config.server_name)
+	{
+
+		size_t sum_post_clk = 0, sum_post_to_poll_clk = 0;
+
+		size_t *post_clks = (size_t *)malloc(sizeof(size_t) * 8000000);
+		size_t *post_to_poll_clks = (size_t *)malloc(sizeof(size_t) * 8000000);
+		if (post_clks && post_to_poll_clks)
+		{
+			PRINT_IN_YELLOW("malloc post_clks and post_to_poll_clks succeed\n");
+		}
+		else
+		{
+			PRINT_IN_RED("malloc post_clks and post_to_poll_clks failed\n");
+			exit(1);
+		}
+
+		memset(post_clks, 0, sizeof(size_t) * 8000000);
+		memset(post_to_poll_clks, 0, sizeof(size_t) * 8000000);
+
+		size_t total_polled_qtt = 0;
+		char temp_char;
+		barrier_sem_inter_intra_nodes();
+		size_t ts, te;
+		unsigned long stc;
+		struct ibv_send_wr *bad_wr;
+		int current_QP_index = 0;
+		unsigned int base_QPN = sr_list[0].wr.ud.remote_qpn;
+		ts = get_timestamp();
+		PRINT_IN_PINK("before send qp[%d]\n", current_QP_index);
+		post_tcs = rdtsc();
+		ibv_post_send(res->qp[0], &sr_list[0], &bad_wr);
+		post_tce = rdtsc();
+		// sum_post_clk += post_tce - post_tcs;
+		post_clks[0] += post_tce - post_tcs;
+
+		for (te = get_timestamp(); te - ts < test_time_length; te = get_timestamp())
+		{
+			// PRINT_IN_PINK("counter %d\n",counter++);
+			int polled_qtt;
+			struct ibv_wc wc;
+			/* poll the completion for a while before giving up of doing it .. */
+			do
+			{
+				polled_qtt = ibv_poll_cq(res->cq, 1, &wc);
+				poll_tce = rdtsc();
+			} while ((polled_qtt == 0));
+
+			if (polled_qtt < 0)
+			{
+				/* poll CQ failed */
+				PRINT_IN_RED("poll CQ failed\n");
+				exit(1);
+			}
+			else
+			{
+				// sum_post_to_poll_clk += poll_tce - post_tcs;
+				post_to_poll_clks[total_polled_qtt] = poll_tce - post_tcs;
+				/* CQE found */
+				total_polled_qtt++;
+				if (wc.status != IBV_WC_SUCCESS)
+				{
+					PRINT_IN_RED("%s\n", ibv_wc_status_str(wc.status));
+					exit(1);
+				}
+				else
+				{
+					// PRINT_IN_PINK("%s\n", ibv_wc_status_str(wc.status));
+					current_QP_index = (current_QP_index + 1) % qp_quantity;
+					usleep(100);
+					post_tcs = rdtsc();
+					ibv_post_send(res->qp[current_QP_index], &sr_list[0], &bad_wr);
+					post_tce = rdtsc();
+					post_clks[total_polled_qtt] = post_tce - post_tcs;
+					// sum_post_clk += post_tce - post_tcs;
+				}
+			}
+		}
+
+
+		for (int i = 0; i < total_polled_qtt; i++)
+		{
+			sum_post_clk += post_clks[i];
+			sum_post_to_poll_clk += post_to_poll_clks[i];
+		}
+		avrg_post_clk = (double)sum_post_clk / total_polled_qtt;
+		PRINT_IN_RED("avrg_post_clk: %lf\n", avrg_post_clk);
+		avrg_post_to_poll_clk = (double)sum_post_to_poll_clk / total_polled_qtt;
+		PRINT_IN_RED("avrg_post_poll_clk: %lf\n", avrg_post_to_poll_clk);
+		PRINT_IN_RED("sum_post_poll_clk: %lu\n", sum_post_to_poll_clk);
+
+		FILE *total_clk_fp, *post_clk_fp, *rest_clk_fp;
+		total_clk_fp = fopen("post_to_poll_clks.log", "a+");
+		post_clk_fp = fopen("post_clks.log", "a+");
+		rest_clk_fp = fopen("rest_clks.log", "a+");
+		fprintf(total_clk_fp, "\nQP qtt = %u\n", qp_quantity);
+		fprintf(post_clk_fp, "\nQP qtt = %u\n", qp_quantity);
+		fprintf(rest_clk_fp, "\nQP qtt = %u\n", qp_quantity);
+
+		size_t max, min, ave, temp_ave;
+		PRINT_IN_RED("total polled qtt is %lu\n",total_polled_qtt);
+		//for (size_t j = 0; j < total_polled_qtt - total_polled_qtt % 10000; j++)
+		for (size_t j = 0; j < total_polled_qtt; j++)
+		{
+			if (j < 1024 || j >= 10240 && j < 10240 + 1024)
+			{
+				if (!(j % 16))
+				{
+					fprintf(total_clk_fp, "\n");
+					fprintf(post_clk_fp, "\n");
+					fprintf(rest_clk_fp, "\n");
+				}
+				fprintf(post_clk_fp, "[%lu] %lu\t", j, post_clks[j]);
+				fprintf(total_clk_fp, "[%lu] %lu\t", j, post_to_poll_clks[j]);
+				fprintf(rest_clk_fp, "[%lu] %lu\t", j, post_to_poll_clks[j] - post_clks[j]);
+			}
+		}
+
+		free(post_clks);
+		free(post_to_poll_clks);
+		fclose(total_clk_fp);
+		fclose(post_clk_fp);
+		fclose(rest_clk_fp);
+
+		// PRINT_IN_YELLOW("poll_seq:%lu\n", poll_seq);
+		size_t sync_temp;
+		if (sock_sync(res->ctrl_sock, sizeof(size_t), (void *)&sync_temp, (void *)&received_quantity))
+		{
+			PRINT_IN_RED("failed to receive the recv_quantity from opposite side\n");
+			exit(1);
+		}
+		else
+		{
+			PRINT_IN_PINK("received quantity[%d]: %lu\n", proc_index, received_quantity);
+		}
+		sem_t *sem_shmem = sem_open_existing(sem_name_shmem_access);
+		sem_wait(sem_shmem);
+		pshemem_struct->msg_post_quantity[proc_index] = total_polled_qtt;
+		pshemem_struct->recved_quantity[proc_index] = received_quantity;
+		pshemem_struct->avrg_post_clk[proc_index] = avrg_post_clk;
+		pshemem_struct->avrg_post_to_poll_clk[proc_index] = avrg_post_to_poll_clk;
+		sem_post(sem_shmem);
+		sem_close(sem_shmem);
+		barrier_sem_inter_intra_nodes();
+		return total_polled_qtt;
+	}
+	else // server side
+	{
+		struct ibv_recv_wr *bad_wr;
+		size_t total_time = 0;
+		size_t total_polled_qtt = 0;
+		char temp_char;
+		int current_QP_index = 0;
+		unsigned int base_QPN = res->qp[0]->qp_num;
+		for (int i = 0; i < qp_quantity; i++)
+		{
+			ibv_post_recv(res->qp[0], &rr_list[i], &bad_wr);
+		}
+		barrier_sem_inter_intra_nodes();
+		size_t ts, te;
+		ts = get_timestamp();
+		for (te = get_timestamp(); te - ts < (size_t)(test_time_length * 1.05); te = get_timestamp())
+		{
+			// PRINT_IN_PINK("counter %d\n",counter++);
+			int temp, imm;
+			int polled_qtt;
+			struct ibv_wc wc;
+			// check_QP_state(res, "before poll");
+			do
+			{
+				polled_qtt = ibv_poll_cq(res->cq, 1, &wc);
+				te = get_timestamp();
+			} while ((polled_qtt == 0) && te - ts < (size_t)(test_time_length * 1.05));
+			if (polled_qtt < 0)
+			{
+				/* poll CQ failed */
+				PRINT_IN_RED("poll CQ failed\n");
+				exit(1);
+			}
+			else
+			{
+				/* CQE found */
+				total_polled_qtt++;
+				if (wc.status != IBV_WC_SUCCESS)
+				{
+					PRINT_IN_RED("%s\n", ibv_wc_status_str(wc.status));
+					exit(1);
+				}
+				else
+				{
+					PRINT_IN_PINK("%s\n", ibv_wc_status_str(wc.status));
+					current_QP_index = (current_QP_index + 1) % qp_quantity;
+					ibv_post_recv(res->qp[0], &rr_list[current_QP_index], &bad_wr);
+				}
 			}
 		}
 
@@ -3794,7 +4145,7 @@ int test_body(void)
 
 void set_global_attr()
 {
-	//pagesize
+	// pagesize
 	if (!strcmp(page_size_str, "4KB"))
 	{
 		page_size = 4 * 1024;
@@ -3904,7 +4255,7 @@ int check_QP_state(struct resources *res, char *printstr)
 	if (flag)
 	{
 		size_t t2 = 0;
-		//print_pingpong_count();
+		// print_pingpong_count();
 
 		do
 		{
@@ -3938,7 +4289,7 @@ void print_pingpong_count()
 	size_t total = 0;
 	for (int i = 0; i < qp_quantity * mr_per_qp; i++)
 	{
-		//PRINT_IN_PINK("[%d]:%6lu\n", i, mr_pingpong_count[i]);
+		// PRINT_IN_PINK("[%d]:%6lu\n", i, mr_pingpong_count[i]);
 		total += mr_pingpong_count[i];
 	}
 	PRINT_IN_PINK("total pingpong count %6lu\n", total);
@@ -4006,7 +4357,7 @@ void barrier_sem_inter_intra_nodes()
 		PRINT_IN_YELLOW("proc 0 waiting for ready\n");
 		while (pshemem_struct->ready != proc_quantity - 1)
 		{
-			//PRINT_IN_PINK("ready is %d\n",pshemem_struct->ready);
+			// PRINT_IN_PINK("ready is %d\n",pshemem_struct->ready);
 		}
 		sem_wait(sem_shmem);
 		pshemem_struct->ready = 0;
@@ -4058,7 +4409,7 @@ void barrier_sem_inter_intra_nodes()
 		PRINT_IN_YELLOW("waiting for start\n");
 		while (pshemem_struct->start != target_start_flag)
 		{
-			//PRINT_IN_PINK("start is %d target is %d\n",pshemem_struct->start,target_start_flag);
+			// PRINT_IN_PINK("start is %d target is %d\n",pshemem_struct->start,target_start_flag);
 		}
 
 		target_start_flag = !target_start_flag;
@@ -4079,7 +4430,7 @@ void barrier_sem_intra_nodes()
 		PRINT_IN_YELLOW("proc 0 waiting for ready\n");
 		while (pshemem_struct->ready != proc_quantity - 1)
 		{
-			//PRINT_IN_PINK("ready is %d\n",pshemem_struct->ready);
+			// PRINT_IN_PINK("ready is %d\n",pshemem_struct->ready);
 		}
 		sem_wait(sem_shmem);
 		pshemem_struct->ready = 0;
@@ -4119,7 +4470,7 @@ void barrier_sem_intra_nodes()
 		PRINT_IN_YELLOW("waiting for start\n");
 		while (pshemem_struct->start != target_start_flag)
 		{
-			//PRINT_IN_PINK("start is %d target is %d\n",pshemem_struct->start,target_start_flag);
+			// PRINT_IN_PINK("start is %d target is %d\n",pshemem_struct->start,target_start_flag);
 		}
 
 		target_start_flag = !target_start_flag;
@@ -4229,4 +4580,23 @@ void set_verID_subj_ps(char *verid, char *sub, char *psstr)
 	memcpy(VersionID, verid, strlen(verid) + 1);
 	memcpy(test_subject, sub, strlen(sub) + 1);
 	memcpy(page_size_str, psstr, strlen(psstr) + 1);
+}
+
+inline static uint64_t rdtsc()
+{
+	uint32_t lo, hi;
+	__asm__ __volatile__("rdtsc"
+						 : "=a"(lo), "=d"(hi));
+	return (((uint64_t)hi << 32) | lo);
+}
+
+void test_clock_rate()
+{
+	size_t tts = get_timestamp();
+	size_t tcs = rdtsc();
+	sleep(10);
+	size_t tte = get_timestamp();
+	size_t tce = rdtsc();
+	PRINT_IN_RED("%lu us %lu clocks\n", tte - tts, tce - tcs);
+	PRINT_IN_RED("ratio %lf clocks/us\n", (double)(tce - tcs) / (double)(tte - tts));
 }

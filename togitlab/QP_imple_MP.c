@@ -1371,7 +1371,7 @@ int prepare_wrs(struct resources *res)
 	}
 	else // not pingpong
 	{
-		char *special_prefix = "kangning_1";
+		char *special_prefix_QPC = "QPC_TEST";
 		if (config.server_name) // client side
 		{
 			if (qp_type == IBV_QPT_RC)
@@ -1441,7 +1441,49 @@ int prepare_wrs(struct resources *res)
 			}
 			else if (qp_type == IBV_QPT_UD && opcode == IBV_WR_SEND_WITH_IMM)
 			{
-				if (mr_per_qp == 1 && wr_per_qp >= 1 && share_mr_between_qp)
+				if (strlen(VersionID) >= strlen(special_prefix_QPC) && !memcmp(VersionID, special_prefix_QPC, strlen(special_prefix_QPC)) && share_mr_between_qp)
+				{
+					PRINT_IN_RED("found special prefix %s\n", special_prefix_QPC);
+					int wr_index = 0;
+					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);
+					send_sge_list = (struct ibv_sge *)malloc(sizeof(struct ibv_sge));
+					memset(sr_list, 0, sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);
+					memset(send_sge_list, 0, sizeof(struct ibv_sge));
+					send_sge_list[0].addr = (uintptr_t)(res->mr_array[0]->addr + 40);
+					send_sge_list[0].length = msg_size;
+					send_sge_list[0].lkey = res->mr_array[0]->lkey;
+					for (wr_index = 0; wr_index < wr_per_qp * qp_quantity; wr_index++)
+					{
+						/* prepare the send work request */
+						if ((wr_index + 1) % wr_per_qp)
+						{
+							sr_list[wr_index].next = &sr_list[wr_index + 1];
+						}
+						else
+						{
+							sr_list[wr_index].next = NULL;
+						}
+						sr_list[wr_index].wr_id = wr_index;
+						sr_list[wr_index].sg_list = &send_sge_list[0];
+						sr_list[wr_index].num_sge = 1;
+
+						sr_list[wr_index].opcode = opcode;
+						sr_list[wr_index].send_flags = IBV_SEND_SIGNALED | inline_flag;
+
+						sr_list[wr_index].imm_data = wr_index;
+						sr_list[wr_index].wr.ud.ah = res->ah;
+						sr_list[wr_index].wr.ud.remote_qpn = res->remote_props.qp_num[wr_index / wr_per_qp];
+						sr_list[wr_index].wr.ud.remote_qkey = 0x11111111;
+						if (!msg_size)
+						{
+							sr_list[wr_index].sg_list = NULL;
+							sr_list[wr_index].num_sge = 0;
+							sr_list[wr_index].send_flags &= ~inline_flag;
+						}
+					}
+				}
+
+				else if (mr_per_qp == 1 && wr_per_qp >= 1 && share_mr_between_qp)
 				{
 					int wr_index = 0;
 					sr_list = (struct ibv_send_wr *)malloc(sizeof(struct ibv_send_wr) * qp_quantity * wr_per_qp);

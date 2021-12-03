@@ -8,7 +8,7 @@ make
 echo pid
 echo $$
 echo pidover
-for((total=1;total<=1;total*=2))
+for((total=1;total<=4;total*=2))
 do
 echo "*********************************"
 echo proc_qtt is $total

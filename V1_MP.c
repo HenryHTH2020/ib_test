@@ -1,8 +1,9 @@
 #include "QP_stat_MP.h"
 
-//c code are the same on both sides
-//no need for different config files, dev and ip are configured by input
+// c code are the same on both sides
+// no need for different config files, dev and ip are configured by input
 //
+int main_QPC(int argc, char *argv[]);
 
 size_t qp_quantity_array[] = {1};
 size_t mr_per_qp_array[] = {1};
@@ -11,6 +12,7 @@ size_t minimum_mr_size = 4;
 
 int set_attribute_for_once(int argc, char *argv[])
 {
+	share_buf_between_mr = 0;
 	TRY_TIMEOUT = 500;
 	use_data_gram = 0;
 	pingpong_mode = 0;
@@ -19,7 +21,8 @@ int set_attribute_for_once(int argc, char *argv[])
 	log_verbose_level = 0;
 	inline_mode = 1;
 	path_mtu = 5;
-	char file_name[50] = "ud_one_sided_single_mr_check_diff_";
+	// char file_name[50] = "ud_shrmr_inlineoff_mrqpnum_8_64size_";
+	char file_name[50] = "QPC_TEST_clk_";
 
 	char *subject_str = "msg_rate";
 	int *proc_index_input;
@@ -40,7 +43,7 @@ int set_attribute_for_once(int argc, char *argv[])
 			{"sub", 1, NULL, 10},
 			{"dev_name", 1, NULL, 12},
 			{0, 0, 0, 0}};
-		//getopt_long(argc,argv,"");
+		// getopt_long(argc,argv,"");
 		int c = getopt_long(argc, argv, "d:c:v:p:", long_options, NULL);
 		printf("c is %d char %c\n", c, c);
 		if (c == -1)
@@ -110,7 +113,7 @@ int set_attribute_for_once(int argc, char *argv[])
 	strcat(file_name, proc_quantity_str);
 	PRINT_FOR_ROOT("file name is :%s\n", file_name);
 
-	//char file_name[50] = "msg_rate_QP_MR_V1_test_2_Proc_qtt";
+	// char file_name[50] = "msg_rate_QP_MR_V1_test_2_Proc_qtt";
 
 	set_verID_subj_ps(file_name, subject_str, "4KB");
 	for (int i = 0; i < argc; i++)
@@ -185,6 +188,11 @@ int test_body_multi_thread(void)
 	PRINT_IN_YELLOW("After the pd alloc\n");
 	PRINT_FOR_ROOT("cq\n");
 	create_cq(&res);
+	if (end_this_loop)
+	{
+		end_this_loop = 0;
+		goto restore_env;
+	}
 	PRINT_IN_YELLOW("After the cq creation\n");
 	PRINT_FOR_ROOT("buf\n");
 
@@ -228,6 +236,9 @@ int test_body_multi_thread(void)
 	}
 	PRINT_IN_PINK("After the test core\n");
 	PRINT_FOR_ROOT("test end\n");
+	print_final_result_fixed_time_length();
+
+restore_env:
 	if (sock_sync(res.ctrl_sock, 1, "R", &temp_char))
 	{
 		PRINT_IN_RED("error Sync before destory\n");
@@ -242,7 +253,6 @@ int test_body_multi_thread(void)
 
 	PRINT_IN_YELLOW("after resources destroy\n");
 
-	print_final_result_fixed_time_length();
 	PRINT_IN_YELLOW("after print final result\n");
 	barrier_sem_inter_intra_nodes();
 
@@ -253,118 +263,42 @@ int test_body_multi_thread(void)
 	}
 	return 0;
 }
-
-int main_tmp(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-	set_attribute_for_once(argc, argv);
-	pshemem_struct = open_shared_memory();
-	int jump = 0;
-
-	set_global_attr();
-	qp_quantity = 1;
-	for (; qp_quantity <= 8192 / proc_quantity;) //5
-	{
-		mr_per_qp = 1;
-		for (wr_per_qp = 256 / proc_quantity; wr_per_qp <= 2048 / proc_quantity; wr_per_qp *= 2) //5
-		//for (mr_per_qp = 1 / proc_quantity; mr_per_qp <= 256 / proc_quantity; mr_per_qp *= 2) //5
-		{
-			for (int base_msg_size = 1024; base_msg_size <= 1024; base_msg_size *= 2) //21
-			{
-				if (base_msg_size < 1)
-				{
-					continue;
-				}
-				for (int i = 0; i <= 0; i++)
-				{
-					if (wr_per_qp >= 1 && mr_per_qp == 1 && share_mr_between_qp)
-					{
-						mr_quantity = 1;
-					}
-					else if (share_mr_between_qp)
-					{
-						mr_quantity = mr_per_qp;
-					}
-					else
-					{
-						mr_quantity = mr_per_qp * qp_quantity;
-					}
-					msg_size = base_msg_size + i;
-					if (use_data_gram && base_msg_size == 4096)
-					{
-						msg_size = base_msg_size + i - 40;
-					}
-					if (qp_type == IBV_QPT_UD)
-					{
-						mr_size = msg_size + 40;
-					}
-					else
-					{
-						mr_size = (msg_size > minimum_mr_size ? msg_size : minimum_mr_size);
-					}
-
-					for (path_mtu = 5; path_mtu <= 5; path_mtu += 4) //2
-					{
-						for (thread_bound = 0; thread_bound < 1; thread_bound++) //2
-						{
-							for (inline_mode = 0; inline_mode <= 1; inline_mode++) //2
-							{
-								int i = 1;
-								do //1
-								{
-									sync_confirm_index++;
-									PRINT_IN_GREEN("entering test body\n");
-									if (proc_quantity == 2 && qp_quantity == 1 && mr_per_qp == 32 && msg_size == 4)
-									{
-										jump = 0;
-									}
-									if (proc_quantity == 4 && qp_quantity == 1 && mr_per_qp == 32 && msg_size == 131072)
-									{
-										jump = 0;
-									}
-									if (jump)
-									{
-										continue;
-									}
-									test_body_multi_thread();
-								} while (i++ < 2);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (qp_quantity < 128)
-		{
-			qp_quantity *= 2;
-		}
-		else if (qp_quantity < 1024)
-		{
-			qp_quantity += 128;
-		}
-		else
-		{
-			qp_quantity += 1024;
-		}
-	}
+	main_QPC(argc, argv);
 	return 0;
 }
 
-int main(int argc, char *argv[])
+int main_QPC(int argc, char *argv[])
 {
+	// QPC
 	set_attribute_for_once(argc, argv);
+	share_buf_between_mr = 0;
+	use_data_gram = 1;
+	pingpong_mode = 0;
+	share_mr_between_qp = 1;
+	test_time_length = 4000000;
+	// log_verbose_level = 0;
+	inline_mode = 1;
+	path_mtu = 5;
 	pshemem_struct = open_shared_memory();
 	int jump = 0;
 	wr_per_qp = 0;
 	set_global_attr();
 	qp_quantity = 1;
-	for (; qp_quantity <= 8192 / proc_quantity;) //5
+	if (proc_quantity != 1)
 	{
-		//mr_per_qp = 1;
-		//for (wr_per_qp = 256 / proc_quantity; wr_per_qp <=  2048/ proc_quantity; wr_per_qp *= 2) //5
-		for (mr_per_qp = 1 / proc_quantity; mr_per_qp <= 256 / proc_quantity; mr_per_qp *= 2) //5
+		return 0;
+	}
+	for (; qp_quantity <= 65536 / proc_quantity; qp_quantity *= 2) // 5
+	{
+		// mr_per_qp = 1;
+		// for (wr_per_qp = 256 / proc_quantity; wr_per_qp <=  2048/ proc_quantity; wr_per_qp *= 2) //5
+		mr_per_qp = 1;
+		for (; mr_per_qp <= 1; mr_per_qp *= 2) // 5
 		{
-			for (int base_msg_size = 512; base_msg_size <= 512; base_msg_size *= 2) //21
+
+			for (int base_msg_size = 1; base_msg_size <= 1; base_msg_size *= 8) // 21
 			{
 				if (base_msg_size < 1)
 				{
@@ -379,39 +313,123 @@ int main(int argc, char *argv[])
 					}
 					if (qp_type == IBV_QPT_UD)
 					{
+
 						mr_size = msg_size + 40;
 					}
 					else
 					{
 						mr_size = (msg_size > minimum_mr_size ? msg_size : minimum_mr_size);
 					}
-					for (path_mtu = 5; path_mtu <= 5; path_mtu += 4) //2
+					for (path_mtu = 5; path_mtu <= 5; path_mtu += 4) // 2
 					{
-						for (thread_bound = 0; thread_bound < 1; thread_bound++) //2
+						for (thread_bound = 1; thread_bound <= 1; thread_bound++) // 2
 						{
-							for (inline_mode = 0; inline_mode <= 1; inline_mode++) //2
+							for (inline_mode = 1; inline_mode <= 1; inline_mode++) // 2
 							{
 								if (unsignaled)
 								{
 									inline_mode = 1;
 								}
 								int i = 1;
-								do //1
+								do // 1
 								{
 									sync_confirm_index++;
 									PRINT_IN_GREEN("entering test body\n");
-									/* 									if (proc_quantity == 2 && qp_quantity == 1 && mr_per_qp == 32 && msg_size == 4)
+
+									if (share_mr_between_qp)
 									{
-										jump = 0;
+										mr_quantity = mr_per_qp;
 									}
-									if (proc_quantity == 4 && qp_quantity == 1 && mr_per_qp == 32 && msg_size == 131072)
+									else
 									{
-										jump = 0;
+										mr_quantity = mr_per_qp * qp_quantity;
 									}
-									if (jump)
+									for (int t = 1; t <= 1; t++)
 									{
-										continue;
-									} */
+
+										for (int tt = 0; tt < 2; tt++)
+										{
+											test_body_multi_thread();
+										}
+									}
+								} while (i++ < 0);
+								if (unsignaled)
+								{
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+int main_tmp(int argc, char *argv[])
+{
+	set_attribute_for_once(argc, argv);
+	pshemem_struct = open_shared_memory();
+	int jump = 0;
+	wr_per_qp = 0;
+	set_global_attr();
+	qp_quantity = 8192;
+	for (; qp_quantity <= 8192 / proc_quantity;) // 5
+	{
+		// mr_per_qp = 1;
+		// for (wr_per_qp = 256 / proc_quantity; wr_per_qp <=  2048/ proc_quantity; wr_per_qp *= 2) //5
+		mr_per_qp = 1;
+		if (qp_quantity == 512)
+		{
+			mr_per_qp = 4;
+		}
+		for (; mr_per_qp <= 8192 / proc_quantity; mr_per_qp *= 2) // 5
+		{
+			for (int base_msg_size = 8; base_msg_size <= 64; base_msg_size *= 8) // 21
+			{
+				if (base_msg_size < 1)
+				{
+					continue;
+				}
+				for (int i = 0; i <= 0; i++)
+				{
+					msg_size = base_msg_size + i;
+					if (use_data_gram && base_msg_size == 4096)
+					{
+						msg_size = base_msg_size + i - 40;
+					}
+					if (qp_type == IBV_QPT_UD)
+					{
+						if (config.server_name)
+						{
+							mr_size = msg_size + 40;
+						}
+						else
+						{
+							mr_size = msg_size + 40;
+						}
+					}
+					else
+					{
+						mr_size = (msg_size > minimum_mr_size ? msg_size : minimum_mr_size);
+					}
+					for (path_mtu = 5; path_mtu <= 5; path_mtu += 4) // 2
+					{
+						for (thread_bound = 0; thread_bound < 1; thread_bound++) // 2
+						{
+							for (inline_mode = 0; inline_mode <= 0; inline_mode++) // 2
+							{
+								if (unsignaled)
+								{
+									inline_mode = 1;
+								}
+								int i = 1;
+								do // 1
+								{
+									sync_confirm_index++;
+									PRINT_IN_GREEN("entering test body\n");
+
 									if (share_mr_between_qp)
 									{
 										mr_quantity = mr_per_qp;
@@ -434,7 +452,7 @@ int main(int argc, char *argv[])
 									test_body_multi_thread();
 									mr_per_qp = wr_per_qp;
 									wr_per_qp = 0;
-								} while (i++ < 2);
+								} while (i++ < 1);
 								if (unsignaled)
 								{
 									break;

@@ -177,6 +177,9 @@ struct shmem_struct
     int ready;
     int start;
     uint32_t error_flag;
+    double avrg_post_clk[100];
+    double avrg_post_to_poll_clk[100];
+
 };
 
 /* structure to exchange data which is needed to connect the QPs */
@@ -206,6 +209,7 @@ struct resources
     struct ibv_port_attr port_attr;    /* IB port attributes */
     struct cm_con_data_t remote_props; /* values to connect to remote side */
     struct ibv_context *ib_ctx;        /* device handle */
+    struct ibv_context ** ib_ctx_array;
     struct ibv_pd *pd;                 /* PD handle */
     struct ibv_cq *cq;                 /* CQ handle */
     struct ibv_qp **qp;                /* QP handle */
@@ -219,6 +223,7 @@ ops */
 };
 
 extern uint32_t error_flag;
+extern int end_this_loop;
 
 extern int ok;
 extern int test_mode;
@@ -253,12 +258,15 @@ extern int qp_quantity_index;
 extern int mr_per_qp_index;
 extern int msg_size_index;
 extern size_t thread_quantity;
-
+extern size_t dev_ctx;
 extern unsigned int qp_quantity;
 extern unsigned int mr_per_qp;
 extern unsigned int mr_quantity;
 extern unsigned int wr_per_qp;
 extern int share_mr_between_qp;
+extern int share_buf_between_mr;
+extern size_t buf_qtt;
+extern double avrg_post_clk, avrg_post_to_poll_clk;
 
 extern size_t mr_size;
 extern size_t msg_size;
@@ -275,6 +283,8 @@ extern struct ibv_sge *sge_list;
 extern char page_size_str[10];
 extern size_t page_size;
 extern size_t total_mmap_size;
+
+extern char *special_prefix_QPC;
 
 extern int pingpong_mode;
 extern int inline_mode;
@@ -381,6 +391,7 @@ size_t test_bw(struct resources *res);
 size_t test_lat(struct resources *res);
 size_t test_msg_rate(struct resources *res);
 size_t test_msg_rate_ud(struct resources *res);
+size_t test_msg_rate_QPC(struct resources *res);
 size_t test_core_pingpong(struct resources *res);
 size_t test_bw_pingpong_timelength(struct resources *res);
 
@@ -418,5 +429,6 @@ void barrier_sem(sem_t *sem1, sem_t *sem2);
 int write_uniform_params();
 void set_verID_subj_ps(char *verid, char *sub, char *psstr);
 static void usage(const char *argv0);
+inline static uint64_t rdtsc();
 
 #endif
